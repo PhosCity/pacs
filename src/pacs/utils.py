@@ -1,4 +1,7 @@
+import os
 import platform
+import subprocess
+from enum import Enum
 from pathlib import Path
 
 
@@ -28,3 +31,80 @@ def is_arch_linux() -> bool:
         return True
 
     return False
+
+
+class XDGType(str, Enum):
+    CONFIG = "config"
+    DATA = "data"
+    CACHE = "cache"
+    STATE = "state"
+
+
+def get_xdg_dir(xdg_type: XDGType) -> Path:
+    """
+    Return the XDG base directory path for the given directory type.
+
+    This function resolves the directory according to the XDG Base Directory Specification
+    by checking environment variables and falling back to the standard defaults.
+
+    Args
+    -----
+        xdg_type: XDGType
+            The type of XDG directory to retrieve. Must be one of:
+            XDGType.CONFIG, XDGType.DATA, XDGType.CACHE, or XDGType.STATE.
+
+    Returns
+    -------
+    Path
+        A path pointing to the resolved XDG directory.
+    """
+    home = Path.home()
+
+    defaults = {
+        XDGType.CONFIG: home / ".config",
+        XDGType.DATA: home / ".local" / "share",
+        XDGType.CACHE: home / ".cache",
+        XDGType.STATE: home / ".local" / "state",
+    }
+
+    env_vars = {
+        XDGType.CONFIG: "XDG_CONFIG_HOME",
+        XDGType.DATA: "XDG_DATA_HOME",
+        XDGType.CACHE: "XDG_CACHE_HOME",
+        XDGType.STATE: "XDG_STATE_HOME",
+    }
+
+    return Path(os.environ.get(env_vars[xdg_type], defaults[xdg_type]))
+
+
+def list_packages(mode: str):
+    """
+    Retrieve a list of package names from pacman based on the specified mode.
+
+    Parameters:
+        mode (str): The mode to determine which pacman command to execute.
+            Supported modes:
+                - "pacman": List explicitly installed packages using pacman
+                - "remote": List remote packages from pacman database
+                - "aur": List all installed packages from AUR
+
+    Returns:
+        list: A list of package names as strings.
+
+    Raises:
+        ValueError: If an unsupported mode is provided.
+    """
+
+    if mode == "pacman":
+        cmd = ["pacman", "-Qen"]
+    elif mode == "remote":
+        cmd = ["pacman", "-Slq"]
+    elif mode == "aur":
+        cmd = ["pacman", "-Qm"]
+    else:
+        raise ValueError(f"Unsupported mode to extract packages: {mode}")
+
+    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+    packages = [line.split()[0] for line in result.stdout.strip().split("\n")]
+    return packages
