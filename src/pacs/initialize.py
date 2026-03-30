@@ -69,7 +69,7 @@ def write_config_file(host_name):
 
 def write_host_file(host_file: Path):
     doc = document()
-    doc["enabled_modules"] = ["packages"]
+    doc["enabled-modules"] = ["packages"]
     doc.add(nl())
 
     # Base
