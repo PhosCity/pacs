@@ -70,7 +70,13 @@ class TaskManager:
         vm.execute()
 
         merged_task = self.pre_tasks + self.tasks + self.post_tasks
-        for task, args, kwargs, _ in merged_task:
+
+        if not merged_task:
+            console.print("No actionable tasks found!\nSync Complete.", style="green")
+            return
+
+        for task, args, kwargs, description in merged_task:
+            console.log(description)
             task(*args, **kwargs)
 
     def dry_run(self, vm: ValidationManager) -> None:
@@ -80,6 +86,11 @@ class TaskManager:
         vm.execute()
 
         merged_task = self.pre_tasks + self.tasks + self.post_tasks
+
+        if not merged_task:
+            console.print("No actionable tasks found!", style="green")
+            return
+
         table = Table(title="Dry Run Tasks", show_lines=True)
         table.add_column("S.N.", justify="left", style="cyan")
         table.add_column("Description", justify="left", style="green")
