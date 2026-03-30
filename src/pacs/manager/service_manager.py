@@ -1,12 +1,10 @@
-import subprocess
-
 from rich.columns import Columns
 from tomlkit import document
 
 import pacs.common_vars as common_vars
 from pacs.manager.task_manager import TaskManager
 from pacs.manager.validation_manager import ValidationManager
-from pacs.utils import difference_list, parse_toml_file, toml_to_file
+from pacs.utils import difference_list, parse_toml_file, run_command, toml_to_file
 
 service_state_file = common_vars.state_dir / "managed_service.toml"
 
@@ -30,22 +28,19 @@ class ServiceManager:
                     )
 
         # Get all services that is available in the system
-        result = subprocess.run(
+        success, result = run_command(
             [
                 "systemctl",
                 "list-unit-files",
                 "--type=service",
                 "--no-pager",
                 "--no-legend",
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
+            ]
         )
 
         vm.validate(
-            result.returncode == 0,
-            f"Cannot determine services available in system.\n{result.stderr.strip()}",
+            success,
+            f"Cannot determine services available in system.\n{result['stderr']}",
         )
 
         self.services_in_system = []
@@ -78,25 +73,17 @@ class ServiceManager:
 
     def enable_services(self, services: list[str], vm: ValidationManager) -> None:
         for service in services:
-            result = subprocess.run(
-                ["systemctl", "enable", service],
-                capture_output=True,
-                text=True,
-            )
+            success, _ = run_command(["systemctl", "enable", service])
 
-            if vm.validate(result.returncode == 0, f'Enabling "{service}" failed'):
+            if vm.validate(success, f'Enabling "{service}" failed'):
                 if service not in self.managed_services:
                     self.managed_services.append(service)
 
     def disable_services(self, services: list[str], vm: ValidationManager) -> None:
         for service in services:
-            result = subprocess.run(
-                ["systemctl", "disable", service],
-                capture_output=True,
-                text=True,
-            )
+            success, _ = run_command(["systemctl", "disable", service])
 
-            if vm.validate(result.returncode == 0, f'Disabling "{service}" failed'):
+            if vm.validate(success, f'Disabling "{service}" failed'):
                 if service in self.managed_services:
                     self.managed_services.remove(service)
 
@@ -116,13 +103,9 @@ class ServiceManager:
         services_to_enable = []
 
         for service in self.services_to_enable:
-            result = subprocess.run(
-                ["systemctl", "is-enabled", service],
-                capture_output=True,
-                text=True,
-            )
+            _, result = run_command(["systemctl", "is-enabled", service])
 
-            if result.stdout.strip() != "enabled":
+            if result["stdout"] != "enabled":
                 services_to_enable.append(service)
 
         # Enable services

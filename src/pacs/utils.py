@@ -1,6 +1,7 @@
 import os
 import platform
 import subprocess
+import sys
 import tempfile
 from enum import Enum
 from pathlib import Path
@@ -117,9 +118,9 @@ def list_packages(mode: PackageType):
     elif mode == PackageType.AUR:
         cmd = ["pacman", "-Qm"]
 
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    _, result = run_command(cmd)
 
-    packages = [line.split()[0] for line in result.stdout.strip().split("\n")]
+    packages = [line.split()[0] for line in result["stdout"].split("\n")]
     return packages
 
 
@@ -202,6 +203,53 @@ def clone_git_repo(repo_url: str, path_to_clone: Path) -> None:
     Repo.clone_from(repo_url, path_to_clone)
 
 
+def run_command(
+    cmd: list[str], *, shell: bool = False, text: bool = True, cwd: None | Path = None
+) -> tuple[bool, dict]:
+    """
+    Run a subprocess command and return structured results.
+
+    Args:
+        cmd (list[str]): Command to run where each element of list is space delimited.
+        shell (bool): Whether to run the command through the shell.
+        text (bool): If True, return stdout/stderr as strings.
+
+    Returns:
+        tuple:
+            bool: True if command successfully ran, False otherwise
+            dict: A dictionary containing:
+                - returncode (int): Process exit code
+                - stdout (str): Standard output
+                - stderr (str): Standard error
+                - error (Exception | None): Exception if one occurred
+    """
+    try:
+        result = subprocess.run(
+            cmd,
+            shell=shell,
+            capture_output=True,
+            text=text,
+            cwd=cwd,
+        )
+
+        details = {
+            "returncode": result.returncode,
+            "stdout": result.stdout.strip(),
+            "stderr": result.stderr.strip(),
+            "error": None,
+        }
+
+        return result.returncode == 0, details
+
+    except Exception as e:
+        return False, {
+            "returncode": None,
+            "stdout": None,
+            "stderr": None,
+            "error": e,
+        }
+
+
 def install_aur_helper(aur_helper: str, local_pacman_package: list[str]) -> bool:
     """
     Install the AUR helper of your choice.
@@ -221,10 +269,13 @@ def install_aur_helper(aur_helper: str, local_pacman_package: list[str]) -> bool
     # Ensure dependencies
     if "base-devel" not in local_pacman_package and "git" not in local_pacman_package:
         console.print("[bold cyan]Installing dependencies...[/bold cyan]")
-        subprocess.run(
-            ["sudo", "pacman", "-S", "--needed", "base-devel", "git"],
-            check=True,
+        success, _ = run_command(
+            ["sudo", "pacman", "-S", "--needed", "base-devel", "git"]
         )
+        if not success:
+            sys.exit(
+                f"Failed to install dependencies while installing AUR Helper: {aur_helper}"
+            )
 
     # Create temp dir in /tmp
     build_dir = Path(tempfile.mkdtemp(prefix=f"{aur_helper}-build-"))
@@ -251,7 +302,7 @@ def install_aur_helper(aur_helper: str, local_pacman_package: list[str]) -> bool
 
     # Build and install
     console.print("[bold green]Building and installing...[/bold green]")
-    subprocess.run(["makepkg", "-si", "--noconfirm"], cwd=build_dir, check=True)
+    run_command(["makepkg", "-si"], cwd=build_dir)
 
     console.print(f"[bold green]{aur_helper} installed successfully![/bold green]")
 

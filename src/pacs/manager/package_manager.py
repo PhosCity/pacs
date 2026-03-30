@@ -1,11 +1,9 @@
-import subprocess
-
 import common_vars
 from rich.columns import Columns
 
 from pacs.manager.task_manager import TaskManager
 from pacs.manager.validation_manager import ValidationManager
-from pacs.utils import difference_list
+from pacs.utils import difference_list, run_command
 
 local_pacman_packages = common_vars.local_pacman_package
 local_aur_packages = common_vars.local_aur_package
@@ -45,41 +43,39 @@ class PackageManager:
     def set_aur_helper(self, helper: str) -> None:
         self.aur_helper = helper
 
-    def install_pacman(self, pacman_packages_to_install: list[str]) -> None:
+    def install_pacman(
+        self, pacman_packages_to_install: list[str], vm: ValidationManager
+    ) -> None:
         """
         Install all the collected packages using pacman
         """
-        subprocess.run(
-            [
-                "sudo",
-                "pacman",
-                "-S",
-                "--needed",
-                *pacman_packages_to_install,
-            ],
-            check=True,
+        success, _ = run_command(
+            ["sudo", "pacman", "-S", "--needed", *pacman_packages_to_install]
         )
+        vm.validate(success, "Failed to install pacman packages.")
 
-    def install_aur(self, aur_packages_to_install: list[str]) -> None:
+    def install_aur(
+        self, aur_packages_to_install: list[str], vm: ValidationManager
+    ) -> None:
         """
         Install all the collected packages using an AUR helper of your choice
         """
         if not self.aur_helper:
             raise RuntimeError("An aur helper could not be found.")
 
-        subprocess.run(
-            [self.aur_helper, "-S", "--needed", *aur_packages_to_install],
-            check=True,
+        success, _ = run_command(
+            [self.aur_helper, "-S", "--needed", *aur_packages_to_install]
         )
+        vm.validate(success, "Failed to install AUR packages.")
 
-    def uninstall_packages(self, packages_to_uninstall: list[str]) -> None:
+    def uninstall_packages(
+        self, packages_to_uninstall: list[str], vm: ValidationManager
+    ) -> None:
         """
         Uninstall all the collected packages using an AUR helper of your choice
         """
-        subprocess.run(
-            ["sudo", "pacman", "-Rcns", *packages_to_uninstall],
-            check=True,
-        )
+        success, _ = run_command(["sudo", "pacman", "-Rcns", *packages_to_uninstall])
+        vm.validate(success, "Failed to remove unused packages from the system.")
 
     def execute(self, tm: TaskManager, vm: ValidationManager) -> None:
         if self.aur_packages:
@@ -102,6 +98,7 @@ class PackageManager:
                     title="Install following packages from pacman",
                 ),
                 pacman_packages_to_install,
+                vm,
             )
 
         if aur_packages_to_install:
@@ -113,6 +110,7 @@ class PackageManager:
                     title="Install following packages from AUR",
                 ),
                 aur_packages_to_install,
+                vm,
             )
 
         packages_to_uninstall = difference_list(
