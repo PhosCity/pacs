@@ -2,9 +2,13 @@ import argparse
 import os
 from urllib.parse import urlparse
 
+from rich.traceback import install
+
 from pacs.initialize import run_init
 from pacs.sync import run_sync
 from pacs.utils import is_arch_linux
+
+install()
 
 
 def valid_url(value: str) -> str:
