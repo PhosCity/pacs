@@ -5,9 +5,11 @@ import tempfile
 from enum import Enum
 from pathlib import Path
 
-from rich.console import Console
-from tomlkit import dumps, parse
 from git import Repo
+from rich.console import Console
+from rich.prompt import Confirm
+from rich.syntax import Syntax
+from tomlkit import dumps, parse
 
 console = Console()
 
@@ -198,3 +200,59 @@ def clone_git_repo(repo_url: str, path_to_clone: Path) -> None:
         raise FileExistsError(f"Target directory '{path_to_clone}' is not empty.")
 
     Repo.clone_from(repo_url, path_to_clone)
+
+
+def install_aur_helper(aur_helper: str, local_pacman_package: list[str]) -> bool:
+    """
+    Install the AUR helper of your choice.
+
+    Args:
+        aur_helper (str): The AUR helper you want to download.
+        local_pacman_package (list[str]): List of packages installed using pacman.
+
+    Returns:
+        bool: True if AUR helper is successfully downloaded, False otherwise.
+
+    Raises:
+        FileNotFoundError: If PKGBUILD cannot be cloned.
+    """
+    repo_url = f"https://aur.archlinux.org/{aur_helper}.git"
+
+    # Ensure dependencies
+    if "base-devel" not in local_pacman_package and "git" not in local_pacman_package:
+        console.print("[bold cyan]Installing dependencies...[/bold cyan]")
+        subprocess.run(
+            ["sudo", "pacman", "-S", "--needed", "base-devel", "git"],
+            check=True,
+        )
+
+    # Create temp dir in /tmp
+    build_dir = Path(tempfile.mkdtemp(prefix=f"{aur_helper}-build-"))
+
+    console.print(f"[bold cyan]Cloning {aur_helper}...[/bold cyan]")
+    clone_git_repo(repo_url, build_dir)
+
+    pkgbuild_path = build_dir / "PKGBUILD"
+
+    if not pkgbuild_path.exists():
+        raise FileNotFoundError("PKGBUILD not found in repo")
+
+    # Display PKGBUILD with syntax highlighting
+    console.print("\n[bold yellow]Review PKGBUILD before proceeding:[/bold yellow]\n")
+    syntax = Syntax(
+        pkgbuild_path.read_text(), "bash", theme="monokai", line_numbers=True
+    )
+    console.print(syntax)
+
+    # Ask for confirmation
+    if not Confirm.ask("\nDo you trust this PKGBUILD and want to continue?"):
+        console.print("[red]Aborted by user.[/red]")
+        return False
+
+    # Build and install
+    console.print("[bold green]Building and installing...[/bold green]")
+    subprocess.run(["makepkg", "-si", "--noconfirm"], cwd=build_dir, check=True)
+
+    console.print(f"[bold green]{aur_helper} installed successfully![/bold green]")
+
+    return True
