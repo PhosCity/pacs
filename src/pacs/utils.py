@@ -4,6 +4,8 @@ import subprocess
 from enum import Enum
 from pathlib import Path
 
+from tomlkit import dumps
+
 
 def is_arch_linux() -> bool:
     """
@@ -108,3 +110,48 @@ def list_packages(mode: str):
 
     packages = [line.split()[0] for line in result.stdout.strip().split("\n")]
     return packages
+
+
+def toml_to_file(filename: Path, doc) -> None:
+    """
+    Write a TOML document to a file.
+
+    Args:
+        filename (Path): The path to the TOML file to write.
+        doc: A tomlkit document object to be serialized and saved.
+
+    Returns:
+        None
+    """
+    filename.parent.mkdir(parents=True, exist_ok=True)
+    filename.write_text(dumps(doc), encoding="utf-8")
+
+
+def difference_list(list1: list[str], list2: list[str]) -> list[str]:
+    """
+    Return a new list containing elements that are in list1 but not in list2
+    Does not preserve order and removes duplicate elements.
+
+    Args:
+        list1 (list[str]): The primary list.
+        list2 (list[str]): The list of elements to exclude.
+
+    Returns:
+        list[str]: A list of elements in list1 but not in list2.
+    """
+    return list(set(list1) - set(list2))
+
+
+def intersection_list(list1: list[str], list2: list[str]) -> list[str]:
+    """
+    Return a new list containing elements that are present in both list1 and list2
+    Does not preserve order and removes duplicate elements.
+
+    Args:
+        list1 (list[str]): The first list.
+        list2 (list[str]): The second list.
+
+    Returns:
+        list[str]: A list of elements common to both lists.
+    """
+    return list(set(list1) & set(list2))
