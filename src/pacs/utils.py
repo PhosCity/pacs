@@ -4,7 +4,7 @@ import subprocess
 from enum import Enum
 from pathlib import Path
 
-from tomlkit import dumps
+from tomlkit import dumps, parse
 
 
 def is_arch_linux() -> bool:
@@ -129,6 +129,21 @@ def toml_to_file(filename: Path, doc) -> None:
     """
     filename.parent.mkdir(parents=True, exist_ok=True)
     filename.write_text(dumps(doc), encoding="utf-8")
+
+
+def parse_toml_file(toml_file: Path):
+    """
+    Read and parse a TOML file using tomlkit.
+
+    Args:
+        toml_file (Path): Path to the TOML file to parse.
+
+    Returns:
+        Parsed TOML data
+    """
+    if toml_file.suffix.lower() != ".toml":
+        raise ValueError(f"The path {toml_file} is not a toml file.")
+    return parse(toml_file.read_text())
 
 
 def difference_list(list1: list[str], list2: list[str]) -> list[str]:
