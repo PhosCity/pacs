@@ -1,6 +1,7 @@
 import sys
-from rich.table import Table
+
 from rich.console import Console
+from rich.table import Table
 
 console = Console()
 
@@ -45,8 +46,8 @@ class ValidationManager:
         if not self.valiation_fails:
             return
         table = Table(title="Validation Fails")
-        table.add_column("S.N.", justify="left", style="magenta")
-        table.add_column("Description", justify="left", style="magenta")
+        table.add_column("S.N.", justify="left", style="cyan")
+        table.add_column("Description", justify="left", style="green")
         for i, description in enumerate(self.valiation_fails):
             table.add_row(str(i + 1), description)
 

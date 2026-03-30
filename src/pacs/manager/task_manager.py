@@ -81,8 +81,8 @@ class TaskManager:
 
         merged_task = self.pre_tasks + self.tasks + self.post_tasks
         table = Table(title="Dry Run Tasks", show_lines=True)
-        table.add_column("S.N.", justify="left", style="magenta")
-        table.add_column("Description", justify="left", style="magenta")
+        table.add_column("S.N.", justify="left", style="cyan")
+        table.add_column("Description", justify="left", style="green")
 
         for i, (_, _, _, description) in enumerate(merged_task):
             # task_name = task.__name__ if hasattr(task, "__name__") else "Unnamed Task"
