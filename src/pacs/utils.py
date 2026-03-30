@@ -1,10 +1,15 @@
 import os
 import platform
 import subprocess
+import tempfile
 from enum import Enum
 from pathlib import Path
 
+from rich.console import Console
 from tomlkit import dumps, parse
+from git import Repo
+
+console = Console()
 
 
 def is_arch_linux() -> bool:
@@ -174,3 +179,22 @@ def intersection_list(list1: list[str], list2: list[str]) -> list[str]:
         list[str]: A list of elements common to both lists.
     """
     return list(set(list1) & set(list2))
+
+
+def clone_git_repo(repo_url: str, path_to_clone: Path) -> None:
+    """
+    Clone a git repository into a specified directory.
+
+    Args:
+        repo_url (str): url of the git repository.
+        path_to_clone (Path): Target directory where the repository will be cloned.
+
+    Raises:
+        FileExistsError: If the target directory already exists and is not empty.
+    """
+    path_to_clone.parent.mkdir(parents=True, exist_ok=True)
+
+    if path_to_clone.exists() and any(path_to_clone.iterdir()):
+        raise FileExistsError(f"Target directory '{path_to_clone}' is not empty.")
+
+    Repo.clone_from(repo_url, path_to_clone)

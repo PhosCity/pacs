@@ -1,13 +1,12 @@
 from pathlib import Path
 
-from git import Repo
 from rich.prompt import Prompt
 from tomlkit import comment, document, nl, table, item
 
 import pacs.common_vars as common_vars
 from pacs.manager.task_manager import TaskManager
 from pacs.manager.validation_manager import ValidationManager
-from pacs.utils import difference_list, intersection_list, toml_to_file
+from pacs.utils import clone_git_repo, difference_list, intersection_list, toml_to_file
 
 config_dir = common_vars.config_dir
 config_py_path = common_vars.config_py_path
@@ -36,8 +35,7 @@ def run_init(args):
     )
 
     if args.url:
-        config_dir.parent.mkdir(parents=True, exist_ok=True)
-        Repo.clone_from(args.url, config_dir)
+        clone_git_repo(args.url, config_dir)
         return
 
     host_name = Prompt.ask("Enter the hostname for this system: ")
