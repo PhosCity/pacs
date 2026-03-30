@@ -1,4 +1,4 @@
-from pacs.utils import get_xdg_dir, list_packages, XDGType
+from pacs.utils import get_xdg_dir, list_packages, XDGType, PackageType
 
 
 config_dir = get_xdg_dir(XDGType.CONFIG) / "pacs"
@@ -13,5 +13,5 @@ supported_linux_kernels = ["linux", "linux-lts", "linux-zen", "linux-hardened"]
 supported_bootloaders = ["grub"]
 suppoerted_aur_helpers = ["yay", "paru"]
 
-local_pacman_package = list_packages(mode="pacman")
-local_aur_package = list_packages(mode="aur")
+local_pacman_package = list_packages(PackageType.PACMAN)
+local_aur_package = list_packages(PackageType.AUR)

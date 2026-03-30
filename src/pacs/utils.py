@@ -79,7 +79,13 @@ def get_xdg_dir(xdg_type: XDGType) -> Path:
     return Path(os.environ.get(env_vars[xdg_type], defaults[xdg_type]))
 
 
-def list_packages(mode: str):
+class PackageType(str, Enum):
+    PACMAN = "pacman"
+    REMOTE = "remote"
+    AUR = "aur"
+
+
+def list_packages(mode: PackageType):
     """
     Retrieve a list of package names from pacman based on the specified mode.
 
@@ -97,14 +103,12 @@ def list_packages(mode: str):
         ValueError: If an unsupported mode is provided.
     """
 
-    if mode == "pacman":
+    if mode == PackageType.PACMAN:
         cmd = ["pacman", "-Qen"]
-    elif mode == "remote":
+    elif mode == PackageType.REMOTE:
         cmd = ["pacman", "-Slq"]
-    elif mode == "aur":
+    elif mode == PackageType.AUR:
         cmd = ["pacman", "-Qm"]
-    else:
-        raise ValueError(f"Unsupported mode to extract packages: {mode}")
 
     result = subprocess.run(cmd, capture_output=True, text=True, check=True)
 
