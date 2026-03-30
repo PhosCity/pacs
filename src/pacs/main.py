@@ -11,28 +11,6 @@ from pacs.utils import is_arch_linux
 install()
 
 
-def valid_url(value: str) -> str:
-    """
-    Validate that a given string is a properly formed url.
-
-    Args:
-    -----
-        value: The input string to validate as a url.
-
-    Returns:
-    --------
-        The original URL string if it is valid.
-
-    Raises:
-    -------
-        argparse.ArgumentTypeError: If the input is not a valid url.
-    """
-    parsed = urlparse(value)
-    if not parsed.scheme or not parsed.netloc:
-        raise argparse.ArgumentTypeError("Invalid URL")
-    return value
-
-
 def parse_arguments() -> argparse.Namespace:
     """
     Parse arguments.
@@ -58,7 +36,6 @@ def parse_arguments() -> argparse.Namespace:
     )
     init_parser.add_argument(
         "--url",
-        type=valid_url,
         help="git url to fetch",
     )
 

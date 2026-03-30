@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from git import Repo
 from rich.prompt import Prompt
 from tomlkit import comment, document, nl, table, item
 
@@ -33,6 +34,11 @@ def run_init(args):
         f"The config directory already exists at\n {config_dir}",
         validate_now=True,
     )
+
+    if args.url:
+        config_dir.parent.mkdir(parents=True, exist_ok=True)
+        Repo.clone_from(args.url, config_dir)
+        return
 
     host_name = Prompt.ask("Enter the hostname for this system: ")
     host_file = host_dir / f"{host_name}.toml"

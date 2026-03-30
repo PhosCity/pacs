@@ -8,6 +8,7 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "gitpython>=3.1.46",
     "rich>=14.3.3",
     "tomlkit>=0.14.0",
 ]
