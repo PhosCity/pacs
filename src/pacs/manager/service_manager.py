@@ -45,7 +45,7 @@ class ServiceManager:
 
         self.services_in_system = []
 
-        for line in result.stdout.strip().split("\n"):
+        for line in result["stdout"].split("\n"):
             if not line:
                 continue
 
