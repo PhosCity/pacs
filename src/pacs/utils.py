@@ -3,6 +3,7 @@ import platform
 import subprocess
 import sys
 import tempfile
+import urllib.request
 from enum import Enum
 from pathlib import Path
 
@@ -307,3 +308,33 @@ def install_aur_helper(aur_helper: str, local_pacman_package: list[str]) -> bool
     console.print(f"[bold green]{aur_helper} installed successfully![/bold green]")
 
     return True
+
+
+def download_file(url: str, save_path: Path, chunk_size=8192):
+    """
+    Download a file from a URL to a specified local path.
+
+    Parameters
+    ----------
+    url : str
+        The URL of the file to download.
+    save_path : Path
+        The destination file path where the downloaded file will be saved.
+    chunk_size : int, optional
+        The number of bytes to read at a time (default is 8192).
+    """
+
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+
+    try:
+        with urllib.request.urlopen(url) as response, save_path.open("wb") as f:
+            while True:
+                chunk = response.read(chunk_size)
+                if not chunk:
+                    break
+                f.write(chunk)
+        return True
+
+    except Exception as e:
+        console.log(f"Downloading file from url failed\n: {e}")
+        return False
