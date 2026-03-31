@@ -1,4 +1,4 @@
-import common_vars
+import pacs.common_vars as common_vars
 from rich.columns import Columns
 
 from pacs.manager.task_manager import TaskManager
