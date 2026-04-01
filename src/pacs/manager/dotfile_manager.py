@@ -11,6 +11,7 @@ from pacs.manager.validation_manager import ValidationManager
 from pacs.utils import (
     clone_git_repo,
     download_file,
+    parse_refresh_period,
     parse_toml_file,
     toml_to_file,
     url_is_valid,
@@ -103,6 +104,8 @@ class DotfileManager:
             symlinks[str(key)] = items
 
         doc["symlinks"] = symlinks
+
+        doc["external"] = self.external_files
         toml_to_file(dotfile_state_file, doc)
 
     def execute(self, tm: TaskManager, vm: ValidationManager):
@@ -136,13 +139,14 @@ class DotfileManager:
         for key, external in self.external_files.items():
             if self.managed_external_files.get(key):
                 last_refreshed = datetime.fromisoformat(
-                    self.managed_external_files[key]["refreshPeriod"]
+                    self.managed_external_files[key]["lastRefreshed"]
                 )
-                refresh_period = timedelta(days=float(external["refreshPeriod"]))
+                refresh_period = parse_refresh_period(external["refreshPeriod"])
 
                 if now - last_refreshed < refresh_period:
                     continue
 
+            self.external_files[key]["lastRefreshed"] = str(now)
             external_type = external["type"]
             url = external["url"]
             destination = external["destination"]

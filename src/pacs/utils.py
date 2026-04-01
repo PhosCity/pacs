@@ -1,9 +1,11 @@
 import os
 import platform
+import re
 import subprocess
 import sys
 import tempfile
 import urllib.request
+from datetime import timedelta
 from enum import Enum
 from pathlib import Path
 from urllib.parse import urlparse
@@ -358,3 +360,28 @@ def url_is_valid(value: str) -> bool:
     if not parsed.scheme or not parsed.netloc:
         return False
     return True
+
+
+def parse_refresh_period(period: str) -> timedelta:
+    """
+    Parse a string like '5d', '12h', '30m', '15s' into a timedelta.
+    """
+    pattern = r"^\s*(\d+(?:\.\d*)?)\s*([dhms])\s*$"
+    match = re.match(pattern, period, re.IGNORECASE)
+    if not match:
+        raise ValueError(f"Invalid refresh period format: {period}")
+
+    value, unit = match.groups()
+    value = float(value)
+    unit = unit.lower()
+
+    if unit == "d":
+        return timedelta(days=value)
+    elif unit == "h":
+        return timedelta(hours=value)
+    elif unit == "m":
+        return timedelta(minutes=value)
+    elif unit == "s":
+        return timedelta(seconds=value)
+    else:
+        raise ValueError(f"Unknown time unit: {unit}")
