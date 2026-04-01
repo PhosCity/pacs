@@ -127,6 +127,9 @@ def handle_module_sub(
             case "dotfiles":
                 dm.add_symlink(value, module_file, vm)
 
+            case "external":
+                dm.add_external(value, module_file, vm)
+
             case "services":
                 sm.add_services_to_enable(value, vm)
 

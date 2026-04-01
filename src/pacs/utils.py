@@ -341,7 +341,7 @@ def download_file(url: str, save_path: Path, chunk_size=8192):
         return False
 
 
-def valid_url(value: str) -> bool:
+def url_is_valid(value: str) -> bool:
     """
     Validate that a given string is a properly formed url.
 

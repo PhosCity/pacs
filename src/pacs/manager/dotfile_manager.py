@@ -1,4 +1,6 @@
-from datetime import datetime
+import shutil
+import tempfile
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from tomlkit import document, item, table
@@ -6,9 +8,16 @@ from tomlkit import document, item, table
 import pacs.common_vars as common_vars
 from pacs.manager.task_manager import TaskManager
 from pacs.manager.validation_manager import ValidationManager
-from pacs.utils import parse_toml_file, toml_to_file
+from pacs.utils import (
+    clone_git_repo,
+    download_file,
+    parse_toml_file,
+    toml_to_file,
+    url_is_valid,
+)
 
 dotfile_state_file = common_vars.state_dir / "managed_dotfiles.toml"
+now = datetime.now(timezone.utc)
 
 
 class DotfileManager:
@@ -20,19 +29,19 @@ class DotfileManager:
         # Get the list of all managed dotfiles
         if not dotfile_state_file.exists():
             self.managed_symlinks: dict[str, list[str]] = {}
-            self.managed_external_files: dict = {}
+            self.managed_external_files: dict[str, dict[str, str]] = {}
         else:
             dotfile_state_data = parse_toml_file(dotfile_state_file)
             for key, value in dotfile_state_data.items():
                 if not vm.validate(
                     key in ["symlinks", "external"],
-                    f"There is unknown key in the state file for services: {key}",
+                    f"There is unknown key in the state file for dotfiles: {key}",
                 ):
                     continue
                 if key == "symlinks":
                     self.managed_symlinks: dict[str, list[str]] = value
                 elif key == "external":
-                    self.managed_external_files = value
+                    self.managed_external_files: dict[str, dict[str, str]] = value
 
     def add_symlink(
         self, dotfiles: dict[Path, list], module_file: Path, vm: ValidationManager
@@ -59,6 +68,28 @@ class DotfileManager:
                     if source not in self.files_to_symlink:
                         self.files_to_symlink[source] = []
                     self.files_to_symlink[source].append(destination)
+
+    def add_external(
+        self, external: dict, module_file: Path, vm: ValidationManager
+    ) -> None:
+        for key, value in external.items():
+            external_type = value["type"]
+            url = value["url"]
+            # refreshPeriod = value["refreshPeriod"]
+
+            if not vm.validate(
+                external_type in ["file", "git-repo"],
+                f"Invalid file type in external {external} in module {module_file.stem}",
+            ):
+                continue
+
+            if not vm.validate(
+                url_is_valid(url),
+                f"Invalid url in external {key} in module {module_file.stem}",
+            ):
+                continue
+
+            self.external_files["key"] = value
 
     def update_dotfiles_state_file(self):
         doc = document()
@@ -102,6 +133,40 @@ class DotfileManager:
 
             files_to_remove.extend(to_remove)
 
+        for key, external in self.external_files.items():
+            last_refreshed = datetime.fromisoformat(
+                self.managed_external_files[key]["refreshPeriod"]
+            )
+            refresh_period = timedelta(days=float(external["refreshPeriod"]))
+
+            if now - last_refreshed < refresh_period:
+                continue
+
+            external_type = external["type"]
+            url = external["url"]
+            destination = external["destination"]
+
+            if external_type == "file":
+                tm.add_task(
+                    self._download_file,
+                    f"Download file from the url\n {url} to location\n {destination}",
+                    url,
+                    destination,
+                    vm,
+                )
+            elif external_type == "git-repo":
+                tm.add_task(
+                    self._clone_repo,
+                    f"Clone repo from the url\n {url} to location\n {destination}",
+                    url,
+                    destination,
+                    vm,
+                )
+
+        for key, external in self.managed_external_files.items():
+            if not self.external_files.get(key):
+                files_to_remove.append(Path(external["destination"]))
+
         for destination in files_to_remove:
             if not destination.exists() and not destination.is_symlink():
                 continue
@@ -112,11 +177,12 @@ class DotfileManager:
             ):
                 continue
             tm.add_task(
-                self._remove_symlink,
+                self._remove_path,
                 f"Remove unmanaged symlink\n {destination}",
                 destination,
             )
 
+        # Update the state file for dotfiles
         if self.files_to_symlink:
             tm.add_task(
                 self.update_dotfiles_state_file,
@@ -170,13 +236,72 @@ class DotfileManager:
         # Create symlink
         target.symlink_to(source)
 
-    def _remove_symlink(self, file_to_remove: Path) -> None:
+    def _remove_path(self, path_to_remove: Path) -> None:
         """
-        Remove symlinked files that are no longer managed without touching the original source file.
+        Remove files/folders that are no longer managed without touching the original source file.
 
         Parameters
         ----------
         file_to_remove : Path
         """
+        if path_to_remove.is_dir():
+            shutil.rmtree(path_to_remove)
+        else:
+            path_to_remove.unlink()
 
-        file_to_remove.unlink()
+    def _download_file(self, url: str, final_path: Path, vm: ValidationManager):
+        """
+        Download a file to a temporary location first, then move to final_path.
+
+        Args:
+            url: File URL
+            final_path: Destination path
+        """
+        # Create temp file
+        with tempfile.NamedTemporaryFile(delete=False, dir=final_path.parent) as tmp:
+            temp_path = Path(tmp.name)
+
+        # Attempt download
+        success = download_file(url, temp_path)
+
+        if success and temp_path.exists():
+            final_path = Path(final_path)
+
+            # Ensure parent directory exists
+            final_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Move (replace if exists)
+            temp_path.replace(final_path)
+        else:
+            temp_path.unlink(missing_ok=True)
+            vm.validate(False, f"Failed to download from the url: {url}")
+
+    def _clone_repo(self, repo_url: str, final_path: Path, vm: ValidationManager):
+        """
+        Clone a git repo to a temporary location first, then move to final_path.
+
+        Args:
+            repo_url: Git repository URL
+            final_path: Destination directory
+            vm: ValidationManager
+        """
+        temp_dir = None
+
+        try:
+            # Create temp directory in same parent
+            with tempfile.TemporaryDirectory(dir=final_path.parent) as tmp:
+                temp_dir = Path(tmp)
+                clone_git_repo(repo_url, temp_dir)
+
+                # Ensure parent exists
+                final_path.parent.mkdir(parents=True, exist_ok=True)
+
+                # Remove existing destination if it exists
+                if final_path.exists():
+                    self._remove_path(final_path)
+
+                # Move temp repo to final location
+                shutil.move(str(temp_dir), str(final_path))
+
+        except Exception as e:
+            vm.validate(False, f"Failed to clone repo: {repo_url}\n{e}")
