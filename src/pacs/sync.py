@@ -8,6 +8,7 @@ from pacs.hardware import (
     has_intel_graphics,
     has_nvidia_graphics,
     has_uefi,
+    is_virutal_manager,
 )
 from pacs.manager.dotfile_manager import DotfileManager
 from pacs.manager.package_manager import PackageManager
@@ -165,6 +166,9 @@ def handle_module_sub(
                 if has_uefi():
                     handle_module_sub(value, module_file)
 
+            case "if-is-virutal-manager":
+                if is_virutal_manager():
+                    handle_module_sub(value, module_file)
             case _:
                 print(f"Ignoring unknown key {key} in module {module_file.stem}")
 

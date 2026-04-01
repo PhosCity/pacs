@@ -1,6 +1,7 @@
-from os.path import exists
 import subprocess
 from pathlib import Path
+
+from pacs.utils import run_command
 
 # https://github.com/archlinux/archinstall/blob/master/archinstall/lib/hardware.py
 
@@ -125,3 +126,15 @@ def has_uefi() -> bool:
         bool: True if the system is running in UEFI mode, False otherwise.
     """
     return Path("/sys/firmware/efi").exists()
+
+
+def is_virutal_manager() -> bool:
+    success, result = run_command(["systemd-detect-virt"])
+    if not success:
+        return False
+
+    output = result["stdout"]
+    if output == "none":
+        return False
+
+    return True
