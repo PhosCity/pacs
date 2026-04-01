@@ -7,6 +7,7 @@ from pacs.hardware import (
     has_battery,
     has_intel_graphics,
     has_nvidia_graphics,
+    has_uefi,
 )
 from pacs.manager.dotfile_manager import DotfileManager
 from pacs.manager.package_manager import PackageManager
@@ -158,6 +159,10 @@ def handle_module_sub(
 
             case "if-has-battery":
                 if has_battery():
+                    handle_module_sub(value, module_file)
+
+            case "if-has-uefi":
+                if has_uefi():
                     handle_module_sub(value, module_file)
 
             case _:

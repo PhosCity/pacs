@@ -1,3 +1,4 @@
+from os.path import exists
 import subprocess
 from pathlib import Path
 
@@ -114,3 +115,13 @@ def cpu_vendor() -> str | None:
         else:
             return None
     return None
+
+
+def has_uefi() -> bool:
+    """
+    Check whether the system is booted in UEFI mode.
+
+    Returns:
+        bool: True if the system is running in UEFI mode, False otherwise.
+    """
+    return Path("/sys/firmware/efi").exists()
