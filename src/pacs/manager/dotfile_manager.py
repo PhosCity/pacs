@@ -89,7 +89,7 @@ class DotfileManager:
             ):
                 continue
 
-            self.external_files["key"] = value
+            self.external_files[key] = value
 
     def update_dotfiles_state_file(self):
         doc = document()
@@ -134,13 +134,14 @@ class DotfileManager:
             files_to_remove.extend(to_remove)
 
         for key, external in self.external_files.items():
-            last_refreshed = datetime.fromisoformat(
-                self.managed_external_files[key]["refreshPeriod"]
-            )
-            refresh_period = timedelta(days=float(external["refreshPeriod"]))
+            if self.managed_external_files.get(key):
+                last_refreshed = datetime.fromisoformat(
+                    self.managed_external_files[key]["refreshPeriod"]
+                )
+                refresh_period = timedelta(days=float(external["refreshPeriod"]))
 
-            if now - last_refreshed < refresh_period:
-                continue
+                if now - last_refreshed < refresh_period:
+                    continue
 
             external_type = external["type"]
             url = external["url"]
@@ -257,6 +258,12 @@ class DotfileManager:
             url: File URL
             final_path: Destination path
         """
+
+        final_path = Path(final_path)
+
+        # Ensure parent directory exists
+        final_path.parent.mkdir(parents=True, exist_ok=True)
+
         # Create temp file
         with tempfile.NamedTemporaryFile(delete=False, dir=final_path.parent) as tmp:
             temp_path = Path(tmp.name)
@@ -265,11 +272,6 @@ class DotfileManager:
         success = download_file(url, temp_path)
 
         if success and temp_path.exists():
-            final_path = Path(final_path)
-
-            # Ensure parent directory exists
-            final_path.parent.mkdir(parents=True, exist_ok=True)
-
             # Move (replace if exists)
             temp_path.replace(final_path)
         else:
