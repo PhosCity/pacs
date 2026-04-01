@@ -6,6 +6,7 @@ import tempfile
 import urllib.request
 from enum import Enum
 from pathlib import Path
+from urllib.parse import urlparse
 
 from git import Repo
 from rich.console import Console
@@ -338,3 +339,22 @@ def download_file(url: str, save_path: Path, chunk_size=8192):
     except Exception as e:
         console.log(f"Downloading file from url failed\n: {e}")
         return False
+
+
+def valid_url(value: str) -> bool:
+    """
+    Validate that a given string is a properly formed url.
+
+    Args:
+    -----
+        value: The input string to validate as a url.
+
+    Returns:
+    --------
+        bool: True if url is valid, False otherwise.
+
+    """
+    parsed = urlparse(value)
+    if not parsed.scheme or not parsed.netloc:
+        return False
+    return True
