@@ -385,3 +385,19 @@ def parse_refresh_period(period: str) -> timedelta:
         return timedelta(seconds=value)
     else:
         raise ValueError(f"Unknown time unit: {unit}")
+
+
+def find_desktop_file(name: str) -> bool:
+    # https://wiki.archlinux.org/title/Desktop_entries#Desktop_entries_for_applications
+    xdg_dirs = [
+        Path.home() / ".local/share/applications",
+        Path("/usr/local/share/applications"),
+        Path("/usr/share/applications"),
+    ]
+
+    for directory in xdg_dirs:
+        path = directory / name
+        if path.is_file():
+            return True
+
+    return False
