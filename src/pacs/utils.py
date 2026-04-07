@@ -212,7 +212,12 @@ def clone_git_repo(repo_url: str, path_to_clone: Path) -> None:
 
 
 def run_command(
-    cmd: list[str], *, shell: bool = False, text: bool = True, cwd: None | Path = None
+    cmd: list[str],
+    *,
+    capture_output=True,
+    shell: bool = False,
+    text: bool = True,
+    cwd: None | Path = None,
 ) -> tuple[bool, dict]:
     """
     Run a subprocess command and return structured results.
@@ -235,7 +240,7 @@ def run_command(
         result = subprocess.run(
             cmd,
             shell=shell,
-            capture_output=True,
+            capture_output=capture_output,
             text=text,
             cwd=cwd,
         )
@@ -278,7 +283,8 @@ def install_aur_helper(aur_helper: str, local_pacman_package: list[str]) -> bool
     if "base-devel" not in local_pacman_package and "git" not in local_pacman_package:
         console.print("[bold cyan]Installing dependencies...[/bold cyan]")
         success, _ = run_command(
-            ["sudo", "pacman", "-S", "--needed", "base-devel", "git"]
+            ["sudo", "pacman", "-S", "--needed", "base-devel", "git"],
+            capture_output=False,
         )
         if not success:
             sys.exit(
@@ -310,7 +316,7 @@ def install_aur_helper(aur_helper: str, local_pacman_package: list[str]) -> bool
 
     # Build and install
     console.print("[bold green]Building and installing...[/bold green]")
-    run_command(["makepkg", "-si"], cwd=build_dir)
+    run_command(["makepkg", "-si"], cwd=build_dir, capture_output=False)
 
     console.print(f"[bold green]{aur_helper} installed successfully![/bold green]")
 

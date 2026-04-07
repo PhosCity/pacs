@@ -50,7 +50,8 @@ class PackageManager:
         Install all the collected packages using pacman
         """
         success, _ = run_command(
-            ["sudo", "pacman", "-S", "--needed", *pacman_packages_to_install]
+            ["sudo", "pacman", "-S", "--needed", *pacman_packages_to_install],
+            capture_output=False,
         )
         vm.validate(success, "Failed to install pacman packages.")
 
@@ -64,7 +65,8 @@ class PackageManager:
             raise RuntimeError("An aur helper could not be found.")
 
         success, _ = run_command(
-            [self.aur_helper, "-S", "--needed", *aur_packages_to_install]
+            [self.aur_helper, "-S", "--needed", *aur_packages_to_install],
+            capture_output=False,
         )
         vm.validate(success, "Failed to install AUR packages.")
 
@@ -74,7 +76,9 @@ class PackageManager:
         """
         Uninstall all the collected packages using an AUR helper of your choice
         """
-        success, _ = run_command(["sudo", "pacman", "-Rcns", *packages_to_uninstall])
+        success, _ = run_command(
+            ["sudo", "pacman", "-Rcns", *packages_to_uninstall], capture_output=False
+        )
         vm.validate(success, "Failed to remove unused packages from the system.")
 
     def execute(self, tm: TaskManager, vm: ValidationManager) -> None:
