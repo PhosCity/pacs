@@ -1,6 +1,5 @@
 import argparse
 import os
-from urllib.parse import urlparse
 
 from rich.traceback import install
 

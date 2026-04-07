@@ -1,6 +1,6 @@
-import pacs.common_vars as common_vars
 from rich.columns import Columns
 
+import pacs.common_vars as common_vars
 from pacs.manager.task_manager import TaskManager
 from pacs.manager.validation_manager import ValidationManager
 from pacs.utils import difference_list, run_command

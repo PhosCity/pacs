@@ -15,6 +15,7 @@ from pacs.utils import (
     download_file,
     parse_refresh_period,
     parse_toml_file,
+    resolve_path,
     toml_to_file,
     url_is_valid,
 )
@@ -84,10 +85,6 @@ class DotfileManager:
                             destination=Path(dest).expanduser() if dest else None,
                         )
 
-    def _resolve_path(self, path: Path | str, base: Path) -> Path:
-        path = Path(path).expanduser()
-        return path if path.is_absolute() else (base / path).resolve()
-
     def add_symlink(
         self, dotfiles: dict[Path, list], module_file: Path, vm: ValidationManager
     ) -> None:
@@ -96,8 +93,8 @@ class DotfileManager:
         for entries in dotfiles.values():
             for mapping in entries:
                 for source, destination in mapping.items():
-                    source = self._resolve_path(source, base)
-                    destination = self._resolve_path(destination, base)
+                    source = resolve_path(source, base)
+                    destination = resolve_path(destination, base)
 
                     if not vm.validate(
                         source.exists(),
