@@ -21,6 +21,7 @@ from pacs.utils import (
 )
 
 dotfile_state_file = common_vars.state_dir / "managed_dotfiles.toml"
+config_dir = common_vars.config_dir
 
 
 @dataclass
@@ -99,6 +100,12 @@ class DotfileManager:
                     if not vm.validate(
                         source.exists(),
                         f'Source not found:\n "{source}" in module "{module_file.stem}"',
+                    ):
+                        continue
+
+                    if not vm.validate(
+                        config_dir not in destination.parents,
+                        f'Destination:\n "{destination}"\n in module "{module_file.stem}" points to the config directory.',
                     ):
                         continue
 
