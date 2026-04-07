@@ -124,7 +124,11 @@ def list_packages(mode: PackageType):
 
     _, result = run_command(cmd)
 
-    packages = [line.split()[0] for line in result["stdout"].split("\n")]
+    packages = []
+    for line in result["stdout"].split("\n"):
+        words = line.split()
+        if words:
+            packages.append(words[0])
     return packages
 
 
