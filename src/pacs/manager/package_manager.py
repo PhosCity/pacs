@@ -128,4 +128,5 @@ class PackageManager:
                     title="Uninstall following packages from the system",
                 ),
                 packages_to_uninstall,
+                vm,
             )
