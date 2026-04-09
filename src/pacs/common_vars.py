@@ -15,3 +15,4 @@ suppoerted_aur_helpers = ["yay", "paru"]
 
 local_pacman_package = list_packages(PackageType.PACMAN)
 local_aur_package = list_packages(PackageType.AUR)
+local_installed_package = list_packages(PackageType.ALL_INSTALLED)

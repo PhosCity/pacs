@@ -7,8 +7,7 @@ from pacs.utils import difference_list, run_command
 
 local_pacman_packages = common_vars.local_pacman_package
 local_aur_packages = common_vars.local_aur_package
-all_installed_packages = local_pacman_packages + local_aur_packages
-
+all_installed_packages = common_vars.local_installed_package 
 
 class PackageManager:
     def __init__(self):
@@ -89,9 +88,9 @@ class PackageManager:
             )
 
         pacman_packages_to_install = difference_list(
-            self.pacman_packages, local_pacman_packages
+            self.pacman_packages, all_installed_packages
         )
-        aur_packages_to_install = difference_list(self.aur_packages, local_aur_packages)
+        aur_packages_to_install = difference_list(self.aur_packages, all_installed_packages)
 
         if pacman_packages_to_install:
             pacman_packages_to_install.sort()
@@ -118,7 +117,8 @@ class PackageManager:
             )
 
         packages_to_uninstall = difference_list(
-            all_installed_packages, self.pacman_packages + self.aur_packages
+            local_pacman_packages + local_aur_packages,
+            self.pacman_packages + self.aur_packages
         )
         if self.aur_helper in packages_to_uninstall:
             packages_to_uninstall.remove(self.aur_helper)

@@ -95,6 +95,7 @@ class PackageType(str, Enum):
     PACMAN = "pacman"
     REMOTE = "remote"
     AUR = "aur"
+    ALL_INSTALLED = "all_installed"
 
 
 def list_packages(mode: PackageType):
@@ -121,6 +122,8 @@ def list_packages(mode: PackageType):
         cmd = ["pacman", "-Slq"]
     elif mode == PackageType.AUR:
         cmd = ["pacman", "-Qm"]
+    elif mode == PackageType.ALL_INSTALLED:
+        cmd = ["pacman", "-Q"]
 
     _, result = run_command(cmd)
 
