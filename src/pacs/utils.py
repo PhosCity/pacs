@@ -413,10 +413,7 @@ def find_desktop_file(name: str) -> bool:
     return False
 
 
-def resolve_path(path: Path | str, module_file: Path) -> Path:
+def resolve_path(path: Path | str, base: Path) -> Path:
     path = Path(path).expanduser()
 
-    if not path.is_absolute():
-        path = module_file.parent / path
-
-    return path.resolve()
+    return path if path.is_absolute() else (base / path).resolve()
