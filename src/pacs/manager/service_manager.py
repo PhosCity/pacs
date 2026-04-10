@@ -73,7 +73,7 @@ class ServiceManager:
 
     def enable_services(self, services: list[str], vm: ValidationManager) -> None:
         for service in services:
-            success, _ = run_command(["systemctl", "enable", service])
+            success, _ = run_command(["sudo", "systemctl", "enable", service])
 
             if vm.validate(success, f'Enabling "{service}" failed'):
                 if service not in self.managed_services:
@@ -81,7 +81,7 @@ class ServiceManager:
 
     def disable_services(self, services: list[str], vm: ValidationManager) -> None:
         for service in services:
-            success, _ = run_command(["systemctl", "disable", service])
+            success, _ = run_command(["sudo", "systemctl", "disable", service])
 
             if vm.validate(success, f'Disabling "{service}" failed'):
                 if service in self.managed_services:
