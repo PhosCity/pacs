@@ -243,8 +243,8 @@ def run_command(
 
         details = {
             "returncode": result.returncode,
-            "stdout": result.stdout.strip(),
-            "stderr": result.stderr.strip(),
+            "stdout": result.stdout.strip() if result.stdout else None,
+            "stderr": result.stderr.strip() if result.stderr else None,
             "error": None,
         }
 
