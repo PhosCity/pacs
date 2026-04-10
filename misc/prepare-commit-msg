@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+mapfile -t py_files < <(git diff-index --cached --name-only 'HEAD^{tree}' | grep '^[^/]*/' | awk -F/ '{print $NF}' | uniq | sed "s/ /||/g")
+
+if ((${#py_files[@]})) && ! head -1 "$1" | grep -q -e '^\[' -e '^fixup!' -e '^squash!'; then
+  sed -i '1s/^/['"$(
+    IFS=,
+    printf "%s" "${py_files[*]}"
+  )"'] /;s/||/ /g;s/\.py//g' "$1"
+fi
