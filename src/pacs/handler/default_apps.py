@@ -1,5 +1,7 @@
+from pathlib import Path
+
 from pacs.manager.validation_manager import ValidationManager
-from pacs.utils import XDGType, find_desktop_file, get_xdg_dir
+from pacs.utils import XDGType, get_xdg_dir
 
 mimetype_map = {
     "browser": [
@@ -44,6 +46,22 @@ mimetype_map = {
         "image/bmp",  # .bmp
     ],
 }
+
+
+def find_desktop_file(name: str) -> bool:
+    # https://wiki.archlinux.org/title/Desktop_entries#Desktop_entries_for_applications
+    xdg_dirs = [
+        Path.home() / ".local/share/applications",
+        Path("/usr/local/share/applications"),
+        Path("/usr/share/applications"),
+    ]
+
+    for directory in xdg_dirs:
+        path = directory / name
+        if path.is_file():
+            return True
+
+    return False
 
 
 def handle_default_apps(associations: dict, vm: ValidationManager) -> None:
