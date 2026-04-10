@@ -188,6 +188,20 @@ def intersection_list(list1: list[str], list2: list[str]) -> list[str]:
     return list(set(list1) & set(list2))
 
 
+def list_is_same(list1: list[str], list2: list[str]) -> bool:
+    """
+    Check if list1 and list2 have same elements.
+
+    Args:
+        list1 (list[str]): The first list.
+        list2 (list[str]): The second list.
+
+    Returns:
+        bool: True is both lists are same, False otherwise.
+    """
+    return set(list1) == set(list2)
+
+
 def clone_git_repo(repo_url: str, path_to_clone: Path) -> None:
     """
     Clone a git repository into a specified directory.

@@ -1,10 +1,16 @@
 from rich.columns import Columns
-from tomlkit import document
+from tomlkit import document, item
 
 import pacs.common_vars as common_vars
 from pacs.manager.task_manager import TaskManager
 from pacs.manager.validation_manager import ValidationManager
-from pacs.utils import difference_list, parse_toml_file, run_command, toml_to_file
+from pacs.utils import (
+    difference_list,
+    list_is_same,
+    parse_toml_file,
+    run_command,
+    toml_to_file,
+)
 
 service_state_file = common_vars.state_dir / "managed_service.toml"
 
@@ -14,9 +20,8 @@ class ServiceManager:
         self.services_to_enable: list[str] = []
 
         # Get the list of all managed services
-        if not service_state_file.exists():
-            self.managed_services: list[str] = []
-        else:
+        self.managed_services: list[str] = []
+        if service_state_file.exists():
             service_state_data = parse_toml_file(service_state_file)
             for key, value in service_state_data.items():
                 if key == "managed_services":
@@ -73,7 +78,9 @@ class ServiceManager:
 
     def enable_services(self, services: list[str], vm: ValidationManager) -> None:
         for service in services:
-            success, _ = run_command(["sudo", "systemctl", "enable", service])
+            success, _ = run_command(
+                ["sudo", "systemctl", "enable", service], capture_output=False
+            )
 
             if vm.validate(success, f'Enabling "{service}" failed'):
                 if service not in self.managed_services:
@@ -81,7 +88,9 @@ class ServiceManager:
 
     def disable_services(self, services: list[str], vm: ValidationManager) -> None:
         for service in services:
-            success, _ = run_command(["sudo", "systemctl", "disable", service])
+            success, _ = run_command(
+                ["sudo", "systemctl", "disable", service], capture_output=False
+            )
 
             if vm.validate(success, f'Disabling "{service}" failed'):
                 if service in self.managed_services:
@@ -89,7 +98,9 @@ class ServiceManager:
 
     def update_service_state_file(self):
         doc = document()
-        doc["managed_services"] = self.managed_services
+        managed_services = item(self.services_to_enable)
+        managed_services.multiline(True)
+        doc["managed_services"] = managed_services
         toml_to_file(service_state_file, doc)
 
     def execute(self, tm: TaskManager, vm: ValidationManager):
@@ -137,7 +148,7 @@ class ServiceManager:
             )
 
         # Update the service state file
-        if self.managed_services:
+        if not list_is_same(self.managed_services, self.services_to_enable):
             tm.add_task(
                 self.update_service_state_file,
                 "Update service state file",
