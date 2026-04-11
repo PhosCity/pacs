@@ -45,9 +45,10 @@ class XDGType(str, Enum):
     DATA = "data"
     CACHE = "cache"
     STATE = "state"
+    DATA_DIRS = "data_dirs"
 
 
-def get_xdg_dir(xdg_type: XDGType) -> Path:
+def get_xdg_dir(xdg_type: XDGType) -> Path | list[Path]:
     """
     Return the XDG base directory path for the given directory type.
 
@@ -58,13 +59,14 @@ def get_xdg_dir(xdg_type: XDGType) -> Path:
     -----
         xdg_type: XDGType
             The type of XDG directory to retrieve. Must be one of:
-            XDGType.CONFIG, XDGType.DATA, XDGType.CACHE, or XDGType.STATE.
+            XDGType.CONFIG, XDGType.DATA, XDGType.CACHE, XDGType.STATE  or XDGType.DATA_DIRS
 
     Returns
     -------
     Path
         A path pointing to the resolved XDG directory.
     """
+    # https://wiki.archlinux.org/title/XDG_Base_Directory
     home = Path.home()
 
     defaults = {
@@ -72,6 +74,7 @@ def get_xdg_dir(xdg_type: XDGType) -> Path:
         XDGType.DATA: home / ".local" / "share",
         XDGType.CACHE: home / ".cache",
         XDGType.STATE: home / ".local" / "state",
+        XDGType.DATA_DIRS: ["/usr/local/share", "/usr/share"],
     }
 
     env_vars = {
@@ -79,9 +82,17 @@ def get_xdg_dir(xdg_type: XDGType) -> Path:
         XDGType.DATA: "XDG_DATA_HOME",
         XDGType.CACHE: "XDG_CACHE_HOME",
         XDGType.STATE: "XDG_STATE_HOME",
+        XDGType.DATA_DIRS: "XDG_DATA_DIRS",
     }
 
-    return Path(os.environ.get(env_vars[xdg_type], defaults[xdg_type]))
+    value = os.environ.get(env_vars[xdg_type])
+
+    if xdg_type == XDGType.DATA_DIRS:
+        if value:
+            return [Path(p) for p in value.split(":") if p]
+        return [Path(p) for p in defaults[xdg_type]]
+
+    return Path(value) if value else defaults[xdg_type]
 
 
 class PackageType(str, Enum):
