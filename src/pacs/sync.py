@@ -4,6 +4,7 @@ import pacs.common_vars as common_vars
 from pacs.handler.base import handle_base
 from pacs.handler.default_apps import handle_default_apps
 from pacs.handler.modules import handle_modules
+from pacs.handler.theme import handle_theming
 
 # Managers
 from pacs.manager.dotfile_manager import DotfileManager
@@ -30,6 +31,7 @@ allowed_host_keys = {
     "enabled-modules": list,
     "mimetypes": dict,
     "base": dict,
+    "theme": dict,
 }
 
 
@@ -78,6 +80,8 @@ def run_sync(args):
             tm.add_task(handle_default_apps, "Recreate mime types", value, vm)
         elif key == "base":
             handle_base(value, vm, tm, pm)
+        elif key == "theme":
+            handle_theming(value, tm, vm)
 
     pm.execute(tm, vm)
     sm.execute(tm, vm)
