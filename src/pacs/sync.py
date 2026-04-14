@@ -5,6 +5,7 @@ from pacs.handler.base import handle_base
 from pacs.handler.default_apps import handle_default_apps
 from pacs.handler.modules import handle_modules
 from pacs.handler.theme import handle_theming
+from pacs.handler.bootloader import handle_bootloader
 
 # Managers
 from pacs.manager.dotfile_manager import DotfileManager
@@ -32,6 +33,7 @@ allowed_host_keys = {
     "mimetypes": dict,
     "base": dict,
     "theme": dict,
+    "bootloader": dict,
 }
 
 
@@ -82,6 +84,8 @@ def run_sync(args):
             handle_base(value, vm, tm, pm)
         elif key == "theme":
             handle_theming(value, tm, vm)
+        elif key == "bootloader":
+            handle_bootloader(value, tm, vm)
 
     pm.execute(tm, vm)
     sm.execute(tm, vm)
