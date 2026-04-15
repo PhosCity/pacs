@@ -62,14 +62,21 @@ class ServiceManager:
                     self.services_in_system.append(name)
 
     def add_services_to_enable(
-        self, service_name: str | list[str], vm: ValidationManager
+        self, service_names: str | list[str], vm: ValidationManager
     ) -> None:
-        if isinstance(service_name, str):
-            service_name = [service_name]
+        if isinstance(service_names, str):
+            service_names = [service_names]
 
-        for service in service_name:
+        for service in service_names:
+            service_to_validate = service
+            # https://wiki.archlinux.org/title/Systemd#Using_units
+            if "@" in service:
+                pre, post = service.split("@", 1)
+                end = post.split(".", 1)[1]
+                service_to_validate = pre + "@." + end
+
             vm.validate(
-                service in self.services_in_system,
+                service_to_validate in self.services_in_system,
                 f'Cannot find service "{service}" in the system.',
             )
 
