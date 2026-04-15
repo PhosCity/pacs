@@ -10,8 +10,8 @@ host_dir = config_dir / "host"
 module_dir = config_dir / "module"
 
 supported_linux_kernels = ["linux", "linux-lts", "linux-zen", "linux-hardened"]
-supported_bootloaders = ["grub"]
 suppoerted_aur_helpers = ["yay", "paru"]
+bootloader_packages = ["grub", "os-prober", "efibootmgr"]
 
 local_pacman_package = list_packages(PackageType.PACMAN)
 local_aur_package = list_packages(PackageType.AUR)

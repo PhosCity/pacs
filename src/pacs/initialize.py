@@ -15,6 +15,7 @@ module_dir = common_vars.module_dir
 
 supported_linux_kernels = common_vars.supported_linux_kernels
 supported_aur_helpers = common_vars.suppoerted_aur_helpers
+bootloader_packages = common_vars.bootloader_packages
 
 local_pacman_package = common_vars.local_pacman_package
 local_aur_package = common_vars.local_aur_package
@@ -22,7 +23,7 @@ local_aur_package = common_vars.local_aur_package
 tm = TaskManager()
 vm = ValidationManager()
 
-base_packages = ["base", "base-devel"]
+base_packages = ["base", "base-devel", "sudo"]
 firmware_packages = ["linux-firmware"]
 supported_headers = [f"{kernel}-headers" for kernel in supported_linux_kernels]
 
@@ -70,19 +71,32 @@ def write_host_file(host_file: Path):
     doc["enabled-modules"] = ["packages"]
     doc.add(nl())
 
-    # Base
     base = table()
+
+    # Base
     base["base-system"] = intersection_list(base_packages, local_pacman_package)
+
+    # Kernels
     base["kernels"] = intersection_list(supported_linux_kernels, local_pacman_package)
 
+    # Firmeware
     installed_firmwares = intersection_list(firmware_packages, local_pacman_package)
     if installed_firmwares:
         base["firmware"] = installed_firmwares
 
+    # Headers
     installed_headers = intersection_list(supported_headers, local_pacman_package)
     if installed_headers:
         base["headers"] = installed_headers
 
+    # Bootloader
+    installed_bootloader_packages = intersection_list(
+        bootloader_packages, local_pacman_package
+    )
+    if installed_bootloader_packages:
+        base["bootloader"] = installed_bootloader_packages
+
+    # AUR Helpers
     installed_aur_helpers = intersection_list(supported_aur_helpers, local_aur_package)
     if installed_aur_helpers:
         if len(installed_aur_helpers) > 1:
