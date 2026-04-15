@@ -2,6 +2,7 @@ import os
 import platform
 import re
 import subprocess
+import tomllib
 import urllib.request
 from datetime import timedelta
 from enum import Enum
@@ -9,7 +10,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from git import Repo
-from tomlkit import dumps, parse
+from tomlkit import dumps
 
 
 def is_arch_linux() -> bool:
@@ -156,17 +157,19 @@ def toml_to_file(filename: Path, doc) -> None:
 
 def parse_toml_file(toml_file: Path):
     """
-    Read and parse a TOML file using tomlkit.
+    Read and parse a TOML file using tomllib.
 
     Args:
         toml_file (Path): Path to the TOML file to parse.
 
     Returns:
-        Parsed TOML data
+        Parsed TOML data (dict)
     """
     if toml_file.suffix.lower() != ".toml":
         raise ValueError(f"The path {toml_file} is not a toml file.")
-    return parse(toml_file.read_text())
+
+    with toml_file.open("rb") as f:
+        return tomllib.load(f)
 
 
 def difference_list(list1: list[str], list2: list[str]) -> list[str]:
