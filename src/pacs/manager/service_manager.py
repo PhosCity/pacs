@@ -128,6 +128,7 @@ class ServiceManager:
                 Columns(
                     services_to_enable,
                     title="Enable the following services",
+                    expand=True,
                 ),
                 services_to_enable,
                 vm,
@@ -142,6 +143,7 @@ class ServiceManager:
                 Columns(
                     services_to_disable,
                     title="Disable the following services",
+                    expand=True,
                 ),
                 services_to_disable,
                 vm,
