@@ -80,7 +80,7 @@ def handle_base(
         "firmware",
         "headers",
         "swap",
-        "aur_helper",
+        "aur-helper",
         "bootloader",
     ]
     for key, value in base.items():
@@ -90,7 +90,7 @@ def handle_base(
         ):
             continue
 
-        if key == "aur_helper":
+        if key == "aur-helper":
             aur_helper = value
 
             vm.validate(

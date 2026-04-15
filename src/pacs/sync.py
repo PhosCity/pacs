@@ -19,7 +19,7 @@ from pacs.utils import parse_toml_file
 
 tm = TaskManager()
 vm = ValidationManager()
-pm = PackageManager()
+pm = PackageManager(vm)
 dm = DotfileManager(vm)
 sm = ServiceManager(vm)
 
@@ -34,6 +34,7 @@ allowed_host_keys = {
     "base": dict,
     "theme": dict,
     "bootloader": dict,
+    "update-on-sync": str,
 }
 
 
@@ -86,6 +87,8 @@ def run_sync(args):
             handle_theming(value, tm, vm)
         elif key == "bootloader":
             handle_bootloader(value, tm, vm)
+        elif key == "update-on-sync":
+            pm.check_update_duration(value)
 
     pm.execute(tm, vm)
     sm.execute(tm, vm)

@@ -1,20 +1,46 @@
+from datetime import datetime, timezone
+
 from rich.columns import Columns
+from tomlkit import document
 
 import pacs.common_vars as common_vars
 from pacs.manager.task_manager import TaskManager
 from pacs.manager.validation_manager import ValidationManager
-from pacs.utils import difference_list, run_command
+from pacs.utils import (
+    difference_list,
+    parse_refresh_period,
+    parse_toml_file,
+    run_command,
+    toml_to_file,
+)
 
 local_pacman_packages = common_vars.local_pacman_package
 local_aur_packages = common_vars.local_aur_package
 all_installed_packages = common_vars.local_installed_package
 
+update_state_file = common_vars.state_dir / "update.toml"
+
 
 class PackageManager:
-    def __init__(self):
+    def __init__(self, vm: ValidationManager):
         self.pacman_packages: list[str] = []
         self.aur_packages: list[str] = []
         self.aur_helper = None
+
+        self.last_updated: datetime | None = None
+        if update_state_file.exists():
+            update_state = parse_toml_file(update_state_file)
+
+            for key, value in update_state.items():
+                if key == "lastUpdated":
+                    self.last_updated = datetime.fromisoformat(value)
+                else:
+                    vm.validate(
+                        False,
+                        f"There is unknown key in the state file for packages: {key}",
+                    )
+
+        self.should_update = True
 
     def add_pacman_package(self, package_name: str | list[str]) -> None:
         """
@@ -81,6 +107,26 @@ class PackageManager:
         )
         vm.validate(success, "Failed to remove unused packages from the system.")
 
+    def check_update_duration(self, duration: str):
+        now = datetime.now(timezone.utc)
+        if self.last_updated:
+            try:
+                period = parse_refresh_period(duration)
+                self.should_update = now - self.last_updated >= period
+            except Exception:
+                pass
+
+    def _update_command(self):
+        now = datetime.now(timezone.utc)
+        if self.aur_helper:
+            run_command([self.aur_helper, "-Syu"], capture_output=False)
+        else:
+            run_command(["sudo", "pacman", "-Syu"], capture_output=False)
+
+        doc = document()
+        doc["lastUpdated"] = now.isoformat()
+        toml_to_file(update_state_file, doc)
+
     def execute(self, tm: TaskManager, vm: ValidationManager) -> None:
         if self.aur_packages:
             vm.validate(
@@ -140,3 +186,5 @@ class PackageManager:
                 packages_to_uninstall,
                 vm,
             )
+        if self.should_update:
+            tm.add_post_task(self._update_command, "Update packages.")
