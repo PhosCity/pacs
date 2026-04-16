@@ -80,7 +80,7 @@ def run_sync(args):
         if key == "enabled-modules":
             handle_modules(value, pm, dm, sm, vm)
         elif key == "mimetypes":
-            tm.add_task(handle_default_apps, "Recreate mime types", value, vm)
+            handle_default_apps(value, vm, tm)
         elif key == "base":
             handle_base(value, vm, tm, pm)
         elif key == "theme":

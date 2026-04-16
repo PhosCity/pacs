@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from pacs.manager.validation_manager import ValidationManager
+from pacs.manager.task_manager import TaskManager
 from pacs.utils import XDGType, get_xdg_dir
 
 mimetype_map = {
@@ -64,7 +65,9 @@ def find_desktop_file(name: str) -> bool:
     return False
 
 
-def handle_default_apps(associations: dict, vm: ValidationManager) -> None:
+def handle_default_apps(
+    associations: dict, vm: ValidationManager, tm: TaskManager
+) -> None:
     """
     Build mimeapps.list content.
     """
@@ -115,4 +118,8 @@ def handle_default_apps(associations: dict, vm: ValidationManager) -> None:
             lines.append(f"{mime}={val}")
         lines.append("")
 
-    output_path.write_text("\n".join(lines))
+    current_mimeapps = output_path.read_text()
+    new_mimeapps = "\n".join(lines)
+
+    if new_mimeapps.strip() != current_mimeapps.strip():
+        tm.add_task(output_path.write_text, "Recreate mime types", new_mimeapps)
