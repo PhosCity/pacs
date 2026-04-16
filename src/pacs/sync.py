@@ -35,6 +35,7 @@ allowed_host_keys = {
     "theme": dict,
     "bootloader": dict,
     "update-on-sync": str,
+    "clean-cache-on-sync": str,
 }
 
 
@@ -88,7 +89,9 @@ def run_sync(args):
         elif key == "bootloader":
             handle_bootloader(value, tm, vm)
         elif key == "update-on-sync":
-            pm.check_update_duration(value)
+            pm.check_duration(value, "update")
+        elif key == "clean-cache-on-sync":
+            pm.check_duration(value, "clean")
 
     pm.execute(tm, vm)
     sm.execute(tm, vm)
