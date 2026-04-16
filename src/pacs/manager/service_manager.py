@@ -37,7 +37,6 @@ class ServiceManager:
             [
                 "systemctl",
                 "list-unit-files",
-                "--type=service",
                 "--no-pager",
                 "--no-legend",
             ]
@@ -50,16 +49,18 @@ class ServiceManager:
 
         self.services_in_system = []
 
-        for line in result["stdout"].split("\n"):
+        for line in result["stdout"].splitlines():
             if not line:
                 continue
 
             parts = line.split()
-            if len(parts) >= 2:
-                name, state = parts[0], parts[1]
+            if len(parts) < 2:
+                continue
 
-                if state not in ["static", "indirect", "generated", "transient"]:
-                    self.services_in_system.append(name)
+            name, state = parts[0], parts[1]
+
+            if state in ["enabled", "disabled", "indirect"]:
+                self.services_in_system.append(name)
 
     def add_services_to_enable(
         self, service_names: str | list[str], vm: ValidationManager
@@ -68,17 +69,18 @@ class ServiceManager:
             service_names = [service_names]
 
         for service in service_names:
-            service_to_validate = service
-            # https://wiki.archlinux.org/title/Systemd#Using_units
             if "@" in service:
-                pre, post = service.split("@", 1)
-                end = post.split(".", 1)[1]
-                service_to_validate = pre + "@." + end
-
-            vm.validate(
-                service_to_validate in self.services_in_system,
-                f'Cannot find service "{service}" in the system.',
-            )
+                # https://wiki.archlinux.org/title/Systemd#Using_units
+                # https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/7/html/system_administrators_guide/chap-managing_services_with_systemd#sect-Managing_Services_with_systemd-Instantiated_Units
+                if service not in self.managed_services:
+                    print(
+                        f"Services with instantiated units like {service} is not validated.\nMake sure it's correct yourself."
+                    )
+            else:
+                vm.validate(
+                    service in self.services_in_system,
+                    f'Cannot find service "{service}" in the system.',
+                )
 
             if service not in self.services_to_enable:
                 self.services_to_enable.append(service)
