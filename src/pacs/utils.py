@@ -168,8 +168,16 @@ def parse_toml_file(toml_file: Path):
     if toml_file.suffix.lower() != ".toml":
         raise ValueError(f"The path {toml_file} is not a toml file.")
 
-    with toml_file.open("rb") as f:
-        return tomllib.load(f)
+    if not toml_file.exists():
+        raise FileNotFoundError(f"TOML file not found: {toml_file}")
+
+    try:
+        with toml_file.open("rb") as f:
+            return tomllib.load(f)
+    except tomllib.TOMLDecodeError as e:
+        raise ValueError(f"Invalid TOML in {toml_file}: {e}") from e
+    except OSError as e:
+        raise OSError(f"Error reading file {toml_file}: {e}") from e
 
 
 def difference_list(list1: list[str], list2: list[str]) -> list[str]:
