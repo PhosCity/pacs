@@ -371,4 +371,5 @@ def parse_refresh_period(period: str) -> timedelta:
 
 def resolve_path(path: Path | str, base: Path) -> Path:
     path = Path(path).expanduser()
-    return (path if path.is_absolute() else base / path).resolve()
+
+    return path if path.is_absolute() else (base / path).resolve()
