@@ -20,7 +20,7 @@ from pacs.utils import parse_toml_file
 tm = TaskManager()
 vm = ValidationManager()
 pm = PackageManager(vm)
-dm = DotfileManager(vm)
+dm = DotfileManager(tm, vm)
 sm = ServiceManager(vm)
 
 config_dir = common_vars.config_dir
@@ -95,7 +95,7 @@ def run_sync(args):
 
     pm.execute(tm, vm)
     sm.execute(tm, vm)
-    dm.execute(tm, vm)
+    dm.execute()
 
     if args.dry_run:
         tm.dry_run(vm)

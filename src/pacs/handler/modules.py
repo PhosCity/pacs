@@ -60,10 +60,10 @@ def handle_module_sub(
                 pm.add_aur_package(value)
 
             case "dotfiles":
-                dm.add_symlink(value, module_file, vm)
+                dm.add_symlink(value, module_file)
 
             case "external":
-                dm.add_external(value, module_file, vm)
+                dm.add_external(value, module_file)
 
             case "services":
                 sm.add_services_to_enable(value, vm)
