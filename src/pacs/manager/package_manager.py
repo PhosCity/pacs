@@ -149,6 +149,11 @@ class PackageManager:
                 ["sudo", "pacman", "-Rns", *package_to_clean], capture_output=False
             )
 
+        if self.aur_helper == "yay":
+            run_command(["yay", "-Scc", "--aur"], capture_output=False)
+        elif self.aur_helper == "paru":
+            run_command(["paru", "-Scca"], capture_output=False)
+
     def _update_state(self):
         now = datetime.now(timezone.utc).isoformat()
         doc = document()
