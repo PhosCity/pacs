@@ -211,9 +211,9 @@ class DotfileManager:
                 if i:
                     text.append("\n")
 
-                text.append(src, style="cyan")
-                text.append(" → ")
-                text.append(dst, style="green")
+                text.append(str(src), style="cyan")
+                text.append(" -> ")
+                text.append(str(dst), style="green")
         elif isinstance(mapping, list):
             for dst in mapping:
                 text.append(str(dst) + "\n")
