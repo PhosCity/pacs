@@ -357,4 +357,4 @@ class DotfileManager:
         # │ State                                                                   │
         # ╰─────────────────────────────────────────────────────────────────────────╯
         if any([to_symlink, to_unlink, to_download, to_clone, to_delete]):
-            self.tm.add_task(self.update_state, "Update state")
+            self.tm.add_task(self.update_state, "Update dotfiles state.")
