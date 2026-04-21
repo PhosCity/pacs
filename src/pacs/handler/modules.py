@@ -66,7 +66,7 @@ def handle_module_sub(
                 dm.add_external(value, module_file)
 
             case "services":
-                sm.add_services_to_enable(value, vm)
+                sm.add_services_to_enable(value)
 
             case "hooks":
                 handle_hooks(value, module_file)

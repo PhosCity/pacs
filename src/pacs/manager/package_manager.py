@@ -22,7 +22,10 @@ update_state_file = common_vars.state_dir / "package.toml"
 
 
 class PackageManager:
-    def __init__(self, vm: ValidationManager):
+    def __init__(self, tm: TaskManager, vm: ValidationManager):
+        self.tm = tm
+        self.vm = vm
+
         self.pacman_packages: list[str] = []
         self.aur_packages: list[str] = []
         self.aur_helper = None
@@ -73,9 +76,7 @@ class PackageManager:
     def set_aur_helper(self, helper: str) -> None:
         self.aur_helper = helper
 
-    def install_pacman(
-        self, pacman_packages_to_install: list[str], vm: ValidationManager
-    ) -> None:
+    def install_pacman(self, pacman_packages_to_install: list[str]) -> None:
         """
         Install all the collected packages using pacman
         """
@@ -83,11 +84,9 @@ class PackageManager:
             ["sudo", "pacman", "-S", "--needed", *pacman_packages_to_install],
             capture_output=False,
         )
-        vm.validate(success, "Failed to install pacman packages.")
+        self.vm.validate(success, "Failed to install pacman packages.")
 
-    def install_aur(
-        self, aur_packages_to_install: list[str], vm: ValidationManager
-    ) -> None:
+    def install_aur(self, aur_packages_to_install: list[str]) -> None:
         """
         Install all the collected packages using an AUR helper of your choice
         """
@@ -98,18 +97,16 @@ class PackageManager:
             [self.aur_helper, "-S", "--needed", *aur_packages_to_install],
             capture_output=False,
         )
-        vm.validate(success, "Failed to install AUR packages.")
+        self.vm.validate(success, "Failed to install AUR packages.")
 
-    def uninstall_packages(
-        self, packages_to_uninstall: list[str], vm: ValidationManager
-    ) -> None:
+    def uninstall_packages(self, packages_to_uninstall: list[str]) -> None:
         """
         Uninstall all the collected packages using an AUR helper of your choice
         """
         success, _ = run_command(
             ["sudo", "pacman", "-Rcns", *packages_to_uninstall], capture_output=False
         )
-        vm.validate(success, "Failed to remove unused packages from the system.")
+        self.vm.validate(success, "Failed to remove unused packages from the system.")
 
     def check_duration(self, duration: str, mode: str):
         now = datetime.now(timezone.utc)
@@ -163,9 +160,9 @@ class PackageManager:
 
         toml_to_file(update_state_file, doc)
 
-    def execute(self, tm: TaskManager, vm: ValidationManager) -> None:
+    def execute(self) -> None:
         if self.aur_packages:
-            vm.validate(
+            self.vm.validate(
                 self.aur_helper is not None,
                 "AUR packages has been defined for this host but aur helper is not.",
             )
@@ -179,7 +176,7 @@ class PackageManager:
 
         if pacman_packages_to_install:
             pacman_packages_to_install.sort()
-            tm.add_task(
+            self.tm.add_task(
                 self.install_pacman,
                 Columns(
                     pacman_packages_to_install,
@@ -187,12 +184,11 @@ class PackageManager:
                     expand=True,
                 ),
                 pacman_packages_to_install,
-                vm,
             )
 
         if aur_packages_to_install:
             aur_packages_to_install.sort()
-            tm.add_task(
+            self.tm.add_task(
                 self.install_aur,
                 Columns(
                     aur_packages_to_install,
@@ -200,7 +196,6 @@ class PackageManager:
                     expand=True,
                 ),
                 aur_packages_to_install,
-                vm,
             )
 
         packages_to_uninstall = difference_list(
@@ -212,7 +207,7 @@ class PackageManager:
 
         if packages_to_uninstall:
             packages_to_uninstall.sort()
-            tm.add_task(
+            self.tm.add_task(
                 self.uninstall_packages,
                 Columns(
                     packages_to_uninstall,
@@ -220,14 +215,13 @@ class PackageManager:
                     expand=True,
                 ),
                 packages_to_uninstall,
-                vm,
             )
 
         if self.should_update:
-            tm.add_post_task(self._update_command, "Update packages.")
+            self.tm.add_post_task(self._update_command, "Update packages.")
 
         if self.should_clean:
-            tm.add_post_task(self._clean_command, "Clean packages.")
+            self.tm.add_post_task(self._clean_command, "Clean packages.")
 
         if self.should_clean or self.should_update:
-            tm.add_post_task(self._update_state, "Update package state.")
+            self.tm.add_post_task(self._update_state, "Update package state.")

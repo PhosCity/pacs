@@ -20,8 +20,8 @@ bootloader_packages = common_vars.bootloader_packages
 local_pacman_package = common_vars.local_pacman_package
 local_aur_package = common_vars.local_aur_package
 
-tm = TaskManager()
 vm = ValidationManager()
+tm = TaskManager(vm)
 
 base_packages = ["base", "base-devel", "sudo"]
 firmware_packages = ["linux-firmware"]
@@ -47,9 +47,9 @@ def run_init(args):
     write_module_file()
 
     if args.dry_run:
-        tm.dry_run(vm)
+        tm.dry_run()
     else:
-        tm.execute_tasks(vm)
+        tm.execute_tasks()
 
 
 def write_config_file(host_name):

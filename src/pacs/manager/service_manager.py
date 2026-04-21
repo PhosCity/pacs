@@ -16,7 +16,9 @@ service_state_file = common_vars.state_dir / "managed_service.toml"
 
 
 class ServiceManager:
-    def __init__(self, vm: ValidationManager):
+    def __init__(self, tm: TaskManager, vm: ValidationManager):
+        self.tm = tm
+        self.vm = vm
         self.services_to_enable: list[str] = []
 
         # Get the list of all managed services
@@ -62,9 +64,7 @@ class ServiceManager:
             if state in ["enabled", "disabled", "indirect"]:
                 self.services_in_system.append(name)
 
-    def add_services_to_enable(
-        self, service_names: str | list[str], vm: ValidationManager
-    ) -> None:
+    def add_services_to_enable(self, service_names: str | list[str]) -> None:
         if isinstance(service_names, str):
             service_names = [service_names]
 
@@ -77,7 +77,7 @@ class ServiceManager:
                         f"Services with instantiated units like {service} is not validated.\nMake sure it's correct yourself."
                     )
             else:
-                vm.validate(
+                self.vm.validate(
                     service in self.services_in_system,
                     f'Cannot find service "{service}" in the system.',
                 )
@@ -85,23 +85,23 @@ class ServiceManager:
             if service not in self.services_to_enable:
                 self.services_to_enable.append(service)
 
-    def enable_services(self, services: list[str], vm: ValidationManager) -> None:
+    def enable_services(self, services: list[str]) -> None:
         for service in services:
             success, _ = run_command(
                 ["sudo", "systemctl", "enable", service], capture_output=False
             )
 
-            if vm.validate(success, f'Enabling "{service}" failed'):
+            if self.vm.validate(success, f'Enabling "{service}" failed'):
                 if service not in self.managed_services:
                     self.managed_services.append(service)
 
-    def disable_services(self, services: list[str], vm: ValidationManager) -> None:
+    def disable_services(self, services: list[str]) -> None:
         for service in services:
             success, _ = run_command(
                 ["sudo", "systemctl", "disable", service], capture_output=False
             )
 
-            if vm.validate(success, f'Disabling "{service}" failed'):
+            if self.vm.validate(success, f'Disabling "{service}" failed'):
                 if service in self.managed_services:
                     self.managed_services.remove(service)
 
@@ -112,7 +112,7 @@ class ServiceManager:
         doc["managed_services"] = managed_services
         toml_to_file(service_state_file, doc)
 
-    def execute(self, tm: TaskManager, vm: ValidationManager):
+    def execute(self):
         # Determine services to disable
         # These are services that was enabled in the past but has been removed from config this time
         services_to_disable = difference_list(
@@ -132,7 +132,7 @@ class ServiceManager:
         if services_to_enable:
             services_to_enable.sort()
 
-            tm.add_post_task(
+            self.tm.add_post_task(
                 self.enable_services,
                 Columns(
                     services_to_enable,
@@ -140,14 +140,13 @@ class ServiceManager:
                     expand=True,
                 ),
                 services_to_enable,
-                vm,
             )
 
         # Disable services
         if services_to_disable:
             services_to_disable.sort()
 
-            tm.add_pre_task(
+            self.tm.add_pre_task(
                 self.disable_services,
                 Columns(
                     services_to_disable,
@@ -155,12 +154,11 @@ class ServiceManager:
                     expand=True,
                 ),
                 services_to_disable,
-                vm,
             )
 
         # Update the service state file
         if not list_is_same(self.managed_services, self.services_to_enable):
-            tm.add_task(
+            self.tm.add_task(
                 self.update_service_state_file,
                 "Update service state file",
             )

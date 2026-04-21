@@ -17,11 +17,11 @@ from pacs.manager.validation_manager import ValidationManager
 # Others
 from pacs.utils import parse_toml_file
 
-tm = TaskManager()
 vm = ValidationManager()
-pm = PackageManager(vm)
+tm = TaskManager(vm)
+pm = PackageManager(tm, vm)
 dm = DotfileManager(tm, vm)
-sm = ServiceManager(vm)
+sm = ServiceManager(tm, vm)
 
 config_dir = common_vars.config_dir
 config_py_path = common_vars.config_py_path
@@ -93,12 +93,12 @@ def run_sync(args):
         elif key == "clean-cache-on-sync":
             pm.check_duration(value, "clean")
 
-    pm.execute(tm, vm)
-    sm.execute(tm, vm)
+    pm.execute()
+    sm.execute()
     dm.execute()
 
     if args.dry_run:
-        tm.dry_run(vm)
+        tm.dry_run()
     else:
-        tm.execute_tasks(vm)
+        tm.execute_tasks()
     vm.execute()

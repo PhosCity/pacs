@@ -9,7 +9,8 @@ console = Console()
 
 
 class TaskManager:
-    def __init__(self):
+    def __init__(self, vm: ValidationManager):
+        self.vm = vm
         self.tasks: list[tuple[Callable, tuple, dict, str]] = []
         self.pre_tasks: list[tuple[Callable, tuple, dict, str]] = []
         self.post_tasks: list[tuple[Callable, tuple, dict, str]] = []
@@ -57,7 +58,7 @@ class TaskManager:
         """
         self.post_tasks.append((task, args, kwargs, description))
 
-    def execute_tasks(self, vm: ValidationManager) -> None:
+    def execute_tasks(self) -> None:
         """
         Executes all registered tasks.
 
@@ -67,7 +68,7 @@ class TaskManager:
         """
         # Executing Validation Manager here means if there are any validation fails,
         # the tasks are never executed
-        vm.execute()
+        self.vm.execute()
 
         merged_task = self.pre_tasks + self.tasks + self.post_tasks
 
@@ -79,11 +80,11 @@ class TaskManager:
             console.log(description)
             task(*args, **kwargs)
 
-    def dry_run(self, vm: ValidationManager) -> None:
+    def dry_run(self) -> None:
         """
         Simulates task execution without actually running them.
         """
-        vm.execute()
+        self.vm.execute()
 
         merged_task = self.pre_tasks + self.tasks + self.post_tasks
 
