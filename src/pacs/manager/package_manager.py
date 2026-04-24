@@ -141,7 +141,7 @@ class PackageManager:
         package_to_clean = result["stdout"]
 
         if package_to_clean:
-            package_to_clean = package_to_clean.split(" ")
+            package_to_clean = package_to_clean.split("\n")
             run_command(
                 ["sudo", "pacman", "-Rns", *package_to_clean], capture_output=False
             )
