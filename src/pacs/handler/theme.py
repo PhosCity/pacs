@@ -5,7 +5,7 @@ from typing import Any, Callable
 
 from pacs.manager.task_manager import TaskManager
 from pacs.manager.validation_manager import ValidationManager
-from pacs.utils import XDGType, get_xdg_dir, run_command
+from pacs.utils import XDGType, get_xdg_data_dirs, get_xdg_dir, run_command
 
 SCHEMA = "org.gnome.desktop.interface"
 
@@ -31,7 +31,7 @@ def get_data_dirs() -> list[Path]:
             dirs.append(value)
 
     extend(get_xdg_dir(XDGType.DATA))
-    extend(get_xdg_dir(XDGType.DATA_DIRS))
+    extend(get_xdg_data_dirs())
 
     seen = set()
     confirmed = []

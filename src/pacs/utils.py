@@ -10,6 +10,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from git import Repo
+from rich.text import Text
 from tomlkit import dumps
 
 
@@ -46,10 +47,10 @@ class XDGType(str, Enum):
     DATA = "data"
     CACHE = "cache"
     STATE = "state"
-    DATA_DIRS = "data_dirs"
+    # DATA_DIRS = "data_dirs"
 
 
-def get_xdg_dir(xdg_type: XDGType) -> Path | list[Path]:
+def get_xdg_dir(xdg_type: XDGType) -> Path:
     """
     Return the XDG base directory path for the given directory type.
 
@@ -75,7 +76,6 @@ def get_xdg_dir(xdg_type: XDGType) -> Path | list[Path]:
         XDGType.DATA: home / ".local" / "share",
         XDGType.CACHE: home / ".cache",
         XDGType.STATE: home / ".local" / "state",
-        XDGType.DATA_DIRS: ["/usr/local/share", "/usr/share"],
     }
 
     env_vars = {
@@ -83,17 +83,17 @@ def get_xdg_dir(xdg_type: XDGType) -> Path | list[Path]:
         XDGType.DATA: "XDG_DATA_HOME",
         XDGType.CACHE: "XDG_CACHE_HOME",
         XDGType.STATE: "XDG_STATE_HOME",
-        XDGType.DATA_DIRS: "XDG_DATA_DIRS",
     }
 
     value = os.environ.get(env_vars[xdg_type])
-
-    if xdg_type == XDGType.DATA_DIRS:
-        if value:
-            return [Path(p) for p in value.split(":") if p]
-        return [Path(p) for p in defaults[xdg_type]]
-
     return Path(value) if value else defaults[xdg_type]
+
+
+def get_xdg_data_dirs():
+    value = os.environ.get("XDG_DATA_DIRS")
+    if value:
+        return [Path(p) for p in value.split(":") if p]
+    return [Path(p) for p in ["/usr/local/share", "/usr/share"]]
 
 
 class PackageType(str, Enum):
@@ -373,3 +373,26 @@ def resolve_path(path: Path | str, base: Path) -> Path:
     path = Path(path).expanduser()
 
     return path if path.is_absolute() else (base / path).resolve()
+
+
+def create_renderables(
+    title: str, mapping: dict[Path, Path] | dict[Path, str] | list[Path]
+):
+    text = Text()
+
+    text.append(title + "\n")
+
+    if isinstance(mapping, dict):
+        for i, (src, dst) in enumerate(mapping.items()):
+            if i:
+                text.append("\n")
+
+            text.append(str(src), style="cyan")
+            text.append(" -> ")
+            text.append(str(dst), style="green")
+    elif isinstance(mapping, list):
+        for dst in mapping:
+            text.append(str(dst) + "\n")
+
+    text.overflow = "fold"
+    return text
