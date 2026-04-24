@@ -23,7 +23,7 @@ local_aur_package = common_vars.local_aur_package
 vm = ValidationManager()
 tm = TaskManager(vm)
 
-base_packages = ["base", "base-devel", "sudo"]
+base_packages = ["base", "base-devel", "sudo", "pacman-contrib"]
 firmware_packages = ["linux-firmware"]
 supported_headers = [f"{kernel}-headers" for kernel in supported_linux_kernels]
 
