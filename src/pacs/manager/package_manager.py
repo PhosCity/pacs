@@ -221,7 +221,11 @@ class PackageManager:
             self.tm.add_post_task(self._update_command, "Update packages.")
 
         if self.should_clean:
-            self.tm.add_post_task(self._clean_command, "Clean packages.")
+            if self.vm.validate(
+                "pacman-contrib" in all_installed_packages,
+                'Your host has enabled cleaning packages but it needs "pacman-contrib" installed for the cleanup.',
+            ):
+                self.tm.add_post_task(self._clean_command, "Clean packages.")
 
         if self.should_clean or self.should_update:
             self.tm.add_post_task(self._update_state, "Update package state.")
