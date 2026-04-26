@@ -68,6 +68,9 @@ def handle_module_sub(
             case "services":
                 sm.add_services_to_enable(value)
 
+            case "services-user":
+                sm.add_services_to_enable(value, user_scope=True)
+
             case "hooks":
                 handle_hooks(value, module_file)
 
