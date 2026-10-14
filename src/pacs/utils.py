@@ -132,8 +132,11 @@ def list_packages(mode: PackageType):
 
     _, result = run_command(cmd)
 
+    if result["error"] is not None:
+        raise RuntimeError(f"Could not run {' '.join(cmd)}: {result['error']}")
+
     packages = []
-    for line in result["stdout"].split("\n"):
+    for line in (result["stdout"] or "").split("\n"):
         words = line.split()
         if words:
             packages.append(words[0])
