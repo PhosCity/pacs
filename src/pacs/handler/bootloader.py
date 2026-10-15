@@ -158,34 +158,43 @@ def update_grub_file(content: str):
 
 
 def update_config(entries: list, updates: dict) -> list:
-    seen_keys = set()
-    new_entries = []
+    """Apply `updates` to parsed grub entries.
 
-    for entry in entries:
-        if entry["type"] != "entry":
-            new_entries.append(entry)
+    For every key in `updates` exactly one entry is written:
+        1. the first active (uncommented) entry, if there is one
+        2. otherwise uncomment the first commented entry
+        3. otherwise a new entry is appended.
+    Other active entries for an updated key are removed because of last win rule
+    """
+    # Choose which entry to write for each updated key
+    target: dict[str, int] = {}
+    for i, entry in enumerate(entries):
+        if entry["type"] != "entry" or entry["key"] not in updates:
             continue
 
         key = entry["key"]
+        if key not in target:
+            target[key] = i
+        elif not entry["commented"] and entries[target[key]]["commented"]:
+            # an active entry always beats a commented one
+            target[key] = i
 
-        # Skip duplicates
-        if key in seen_keys:
-            continue
-
-        seen_keys.add(key)
-
-        if key in updates:
-            entry["value"] = updates[key]
-
-            # only uncomment if it was updated
-            if entry["commented"]:
-                entry["commented"] = False
+    # Build the new list
+    new_entries = []
+    for i, entry in enumerate(entries):
+        if entry["type"] == "entry" and entry["key"] in updates:
+            key = entry["key"]
+            if i == target[key]:
+                entry = {**entry, "value": updates[key], "commented": False}
+            elif not entry["commented"]:
+                # other active definitions of an updated key
+                continue
 
         new_entries.append(entry)
 
     # Add missing keys
     for key, value in updates.items():
-        if key not in seen_keys:
+        if key not in target:
             new_entries.append(
                 {
                     "type": "entry",
