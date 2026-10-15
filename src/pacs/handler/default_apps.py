@@ -96,10 +96,23 @@ def handle_default_apps(
         for key, value in sorted(
             data.items(), key=lambda item: (item[0] not in mimetype_map, item[0])
         ):
-            vm.validate(
-                find_desktop_file(value),
-                f"The desktop file for {value} does not exist.",
-            )
+            # A value is one desktop file name or a list of them
+            desktop_files = [value] if isinstance(value, str) else value
+            if not vm.validate(
+                isinstance(desktop_files, list)
+                and len(desktop_files) > 0
+                and all(isinstance(file, str) for file in desktop_files),
+                f'The value for "{key}" must be a desktop file name or a non-empty '
+                f"list of desktop file names. Got: {value!r}",
+            ):
+                continue
+
+            for desktop_file in desktop_files:
+                vm.validate(
+                    find_desktop_file(desktop_file),
+                    f"The desktop file for {desktop_file} does not exist.",
+                )
+
             mimetypes = mimetype_map.get(key) or [key]
 
             if isinstance(value, list):
