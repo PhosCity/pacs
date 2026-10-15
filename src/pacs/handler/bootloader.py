@@ -133,28 +133,59 @@ def validate_grub_config(grub_config: dict, vm: ValidationManager):
 
 
 def update_grub_file(content: str):
+    grub_path = "/etc/default/grub"
+    backup_path = "/etc/default/grub.bak"
+
+    # POSIX text files end with a newline
+    if not content.endswith("\n"):
+        content += "\n"
+
     with tempfile.NamedTemporaryFile(
         mode="w", delete=False, prefix="grub_", suffix=".tmp"
     ) as tmp:
         tmp.write(content)
         temp_path = Path(tmp.name)
 
-    # Create backup
-    success, _ = run_command(
-        ["sudo", "cp", "/etc/default/grub", "/etc/default/grub.bak"]
-    )
-    if not success:
-        raise RuntimeError("Failed to create backup of grub config.")
+    try:
+        # Create backup (-p keeps owner, mode and timestamps)
+        success, _ = run_command(["sudo", "cp", "-p", grub_path, backup_path])
+        if not success:
+            raise RuntimeError("Failed to create backup of grub config.")
 
-    success, _ = run_command(["sudo", "mv", str(temp_path), "/etc/default/grub"])
-    if not success:
-        raise RuntimeError("Failed to update grub config.")
+        success, _ = run_command(
+            [
+                "sudo",
+                "install",
+                "-m",
+                "644",
+                "-o",
+                "root",
+                "-g",
+                "root",
+                str(temp_path),
+                grub_path,
+            ]
+        )
+        if not success:
+            raise RuntimeError("Failed to update grub config.")
 
-    success, _ = run_command(
-        ["sudo", "grub-mkconfig", "-o", "/boot/grub/grub.cfg"], capture_output=False
-    )
-    if not success:
-        raise RuntimeError("Failed to generate grub config using grub-mkconfig.")
+        success, _ = run_command(
+            ["sudo", "grub-mkconfig", "-o", "/boot/grub/grub.cfg"],
+            capture_output=False,
+        )
+        if not success:
+            restored, _ = run_command(["sudo", "cp", "-p", backup_path, grub_path])
+            if restored:
+                raise RuntimeError(
+                    "Failed to generate grub config using grub-mkconfig. "
+                    f"The previous {grub_path} has been restored."
+                )
+            raise RuntimeError(
+                "Failed to generate grub config using grub-mkconfig, and restoring "
+                f"the previous config failed. Restore it manually from {backup_path}."
+            )
+    finally:
+        temp_path.unlink(missing_ok=True)
 
 
 def update_config(entries: list, updates: dict) -> list:
