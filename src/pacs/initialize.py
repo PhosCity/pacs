@@ -103,7 +103,7 @@ def write_host_file(host_file: Path):
             print(
                 f"There are multiple AUR helpers installed. Chosen {installed_aur_helpers[0]}.\nChange manually if another one is desired."
             )
-        base["aur_helper"] = installed_aur_helpers[0]
+        base["aur-helper"] = installed_aur_helpers[0]
 
     doc.add("base", base)
 
