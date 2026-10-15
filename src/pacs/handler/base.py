@@ -9,7 +9,7 @@ import pacs.common_vars as common_vars
 from pacs.manager.package_manager import PackageManager
 from pacs.manager.task_manager import TaskManager
 from pacs.manager.validation_manager import ValidationManager
-from pacs.utils import clone_git_repo, run_command
+from pacs.utils import aur_helper_package_names, clone_git_repo, run_command
 
 console = Console()
 
@@ -98,7 +98,10 @@ def handle_base(
                 f"{aur_helper} is not a supported aur helper.",
             )
 
-            if aur_helper not in all_installed_packages:
+            if not any(
+                package in all_installed_packages
+                for package in aur_helper_package_names(aur_helper)
+            ):
                 tm.add_pre_task(
                     install_aur_helper,
                     f'Install AUR Helper "{aur_helper}"',

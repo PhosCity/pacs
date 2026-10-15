@@ -198,6 +198,22 @@ def difference_list(list1: list[str], list2: list[str]) -> list[str]:
     return list(set(list1) - set(list2))
 
 
+def aur_helper_package_names(helper: str) -> list[str]:
+    """
+    Return the package names an AUR helper can be installed under.
+
+    The command name and the package name are not always the same: yay and paru
+    are commonly installed from the AUR as "yay-bin" or "paru-git".
+
+    Args:
+        helper (str): The command name of the AUR helper, e.g. "yay".
+
+    Returns:
+        list[str]: e.g. ["yay", "yay-bin", "yay-git"]
+    """
+    return [helper, f"{helper}-bin", f"{helper}-git"]
+
+
 def intersection_list(list1: list[str], list2: list[str]) -> list[str]:
     """
     Return a new list containing elements that are present in both list1 and list2

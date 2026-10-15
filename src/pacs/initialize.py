@@ -6,7 +6,13 @@ from tomlkit import comment, document, nl, table, item
 import pacs.common_vars as common_vars
 from pacs.manager.task_manager import TaskManager
 from pacs.manager.validation_manager import ValidationManager
-from pacs.utils import clone_git_repo, difference_list, intersection_list, toml_to_file
+from pacs.utils import (
+    aur_helper_package_names,
+    clone_git_repo,
+    difference_list,
+    intersection_list,
+    toml_to_file,
+)
 
 config_dir = common_vars.config_dir
 config_py_path = common_vars.config_py_path
@@ -14,7 +20,7 @@ host_dir = common_vars.host_dir
 module_dir = common_vars.module_dir
 
 supported_linux_kernels = common_vars.supported_linux_kernels
-supported_aur_helpers = common_vars.suppoerted_aur_helpers
+supported_aur_helpers = common_vars.supported_aur_helpers
 bootloader_packages = common_vars.bootloader_packages
 
 local_pacman_package = common_vars.local_pacman_package
@@ -66,6 +72,28 @@ def write_config_file(host_name):
     )
 
 
+def find_installed_aur_helpers() -> tuple[list[str], list[str]]:
+    """
+    Find the AUR helpers installed on this system.
+
+    Returns:
+        tuple: (helper command names, e.g. ["yay"],
+                package names they are installed as, e.g. ["yay-bin"])
+    """
+    helpers = []
+    helper_packages = []
+    for helper in supported_aur_helpers:
+        installed_as = [
+            package
+            for package in aur_helper_package_names(helper)
+            if package in local_aur_package
+        ]
+        if installed_as:
+            helpers.append(helper)
+            helper_packages.extend(installed_as)
+    return helpers, helper_packages
+
+
 def write_host_file(host_file: Path):
     doc = document()
     doc["enabled-modules"] = ["packages"]
@@ -97,7 +125,7 @@ def write_host_file(host_file: Path):
         base["bootloader"] = installed_bootloader_packages
 
     # AUR Helpers
-    installed_aur_helpers = intersection_list(supported_aur_helpers, local_aur_package)
+    installed_aur_helpers, _ = find_installed_aur_helpers()
     if installed_aur_helpers:
         if len(installed_aur_helpers) > 1:
             print(
@@ -129,8 +157,11 @@ def write_module_file():
         doc["pacman_packages"] = pacman_packages
         doc.add(nl())
 
-    installed_aur_helpers = intersection_list(supported_aur_helpers, local_aur_package)
-    remaining_aur_packages = difference_list(local_aur_package, installed_aur_helpers)
+    # The helper itself is configured in the host file, not as a normal package
+    _, installed_aur_helper_packages = find_installed_aur_helpers()
+    remaining_aur_packages = difference_list(
+        local_aur_package, installed_aur_helper_packages
+    )
     if remaining_aur_packages:
         remaining_aur_packages.sort()
         aur_packages = item(remaining_aur_packages)

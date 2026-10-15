@@ -7,6 +7,7 @@ import pacs.common_vars as common_vars
 from pacs.manager.task_manager import TaskManager
 from pacs.manager.validation_manager import ValidationManager
 from pacs.utils import (
+    aur_helper_package_names,
     difference_list,
     parse_refresh_period,
     parse_toml_file,
@@ -294,8 +295,11 @@ class PackageManager:
             local_pacman_packages + local_aur_packages,
             self.pacman_packages + self.aur_packages,
         )
-        if self.aur_helper in packages_to_uninstall:
-            packages_to_uninstall.remove(self.aur_helper)
+        # Never uninstall the AUR helper in use, whichever package it is installed as
+        if self.aur_helper:
+            for package in aur_helper_package_names(self.aur_helper):
+                if package in packages_to_uninstall:
+                    packages_to_uninstall.remove(package)
 
         if packages_to_uninstall:
             packages_to_uninstall.sort()
