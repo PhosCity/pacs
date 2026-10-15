@@ -21,6 +21,28 @@ all_installed_packages = common_vars.local_installed_package
 update_state_file = common_vars.state_dir / "package.toml"
 
 
+def parse_state_datetime(value) -> datetime:
+    """
+    Convert a timestamp read from the state file into a timezone-aware datetime.
+
+    TOML can hold the value either as a string or as a native datetime, so both
+    are accepted. A timestamp without timezone information is assumed to be UTC.
+
+    Raises:
+        ValueError: if the value is not a valid timestamp.
+    """
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, str):
+        parsed = datetime.fromisoformat(value)
+    else:
+        raise ValueError(f"Unsupported timestamp type: {type(value).__name__}")
+
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
 class PackageManager:
     def __init__(self, tm: TaskManager, vm: ValidationManager):
         self.tm = tm
@@ -36,10 +58,20 @@ class PackageManager:
             update_state = parse_toml_file(update_state_file)
 
             for key, value in update_state.items():
-                if key == "lastUpdated":
-                    self.last_updated = datetime.fromisoformat(value)
-                elif key == "lastCleaned":
-                    self.last_cleaned = datetime.fromisoformat(value)
+                if key in ("lastUpdated", "lastCleaned"):
+                    try:
+                        timestamp = parse_state_datetime(value)
+                    except ValueError:
+                        vm.validate(
+                            False,
+                            f"Invalid timestamp for {key} in the package state file: {value!r}",
+                        )
+                        continue
+
+                    if key == "lastUpdated":
+                        self.last_updated = timestamp
+                    else:
+                        self.last_cleaned = timestamp
                 else:
                     vm.validate(
                         False,
@@ -152,11 +184,17 @@ class PackageManager:
             run_command(["paru", "-Scca"], capture_output=False)
 
     def _update_state(self):
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(timezone.utc)
         doc = document()
 
-        doc["lastUpdated"] = now if self.should_update else self.last_updated
-        doc["lastCleaned"] = now if self.should_clean else self.last_cleaned
+        last_updated = now if self.should_update else self.last_updated
+        last_cleaned = now if self.should_clean else self.last_cleaned
+
+        # Always store ISO strings.
+        if last_updated is not None:
+            doc["lastUpdated"] = last_updated.isoformat()
+        if last_cleaned is not None:
+            doc["lastCleaned"] = last_cleaned.isoformat()
 
         toml_to_file(update_state_file, doc)
 
@@ -218,7 +256,10 @@ class PackageManager:
             )
 
         if self.should_update:
-            self.tm.add_post_task(self._update_command, "Update packages.")
+            if packages_to_uninstall:
+                self.tm.add_post_task(self._update_command, "Update packages.")
+            else:
+                self.tm.add_pre_task(self._update_command, "Update packages.")
 
         if self.should_clean:
             if self.vm.validate(
