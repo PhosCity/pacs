@@ -133,12 +133,44 @@ class PackageManager:
 
     def uninstall_packages(self, packages_to_uninstall: list[str]) -> None:
         """
-        Uninstall all the collected packages using an AUR helper of your choice
+        Uninstall all the collected packages using pacman.
         """
         success, _ = run_command(
-            ["sudo", "pacman", "-Rcns", *packages_to_uninstall], capture_output=False
+            ["sudo", "pacman", "-Rns", *packages_to_uninstall], capture_output=False
         )
-        self.vm.validate(success, "Failed to remove unused packages from the system.")
+        self.vm.validate(
+            success,
+            "Failed to remove unused packages from the system. "
+            "A package that you are keeping may depend on them.",
+        )
+
+    def dependency_installed_packages(self) -> set[str]:
+        """
+        Names of all installed packages whose install reason is "dependency".
+        """
+        # Exit code 1 with no output simply means there are no such packages.
+        _, result = run_command(["pacman", "-Qdq"])
+        if result["error"] is not None:
+            raise RuntimeError(f"Could not run pacman -Qdq: {result['error']}")
+        return set((result["stdout"] or "").split())
+
+    def mark_as_explicit(self, packages_to_mark: list[str]) -> None:
+        """
+        Mark configured packages as explicitly installed.
+
+        A configured package that was installed as a dependency would otherwise be
+        treated as an orphan by `pacman -Qtdq` and be removed by the cleanup, and
+        would be removed by `pacman -Rns` as an unneeded dependency of a package
+        that is being uninstalled. It would also never show up in `pacman -Qen`,
+        so removing it from the config later would not uninstall it.
+        """
+        success, _ = run_command(
+            ["sudo", "pacman", "-D", "--asexplicit", *packages_to_mark],
+            capture_output=False,
+        )
+        self.vm.validate(
+            success, "Failed to mark configured packages as explicitly installed."
+        )
 
     def check_duration(self, duration: str, mode: str):
         now = datetime.now(timezone.utc)
@@ -170,10 +202,16 @@ class PackageManager:
         run_command(["paccache", "-ruk0"], capture_output=False)
 
         _, result = run_command(["pacman", "-Qtdq"])
-        package_to_clean = result["stdout"]
+
+        # Never remove a package that is in the config even if pacman considers it an orphan.
+        configured = set(self.pacman_packages + self.aur_packages)
+        package_to_clean = [
+            package
+            for package in (result["stdout"] or "").split()
+            if package not in configured
+        ]
 
         if package_to_clean:
-            package_to_clean = package_to_clean.split("\n")
             run_command(
                 ["sudo", "pacman", "-Rns", *package_to_clean], capture_output=False
             )
@@ -211,6 +249,22 @@ class PackageManager:
         aur_packages_to_install = difference_list(
             self.aur_packages, all_installed_packages
         )
+
+        # Must come before the install/uninstall tasks and the cleanup, see mark_as_explicit().
+        packages_to_mark = sorted(
+            set(self.pacman_packages + self.aur_packages)
+            & self.dependency_installed_packages()
+        )
+        if packages_to_mark:
+            self.tm.add_task(
+                self.mark_as_explicit,
+                Columns(
+                    packages_to_mark,
+                    title="Mark following packages as explicitly installed (they are in your config but installed as dependencies)",
+                    expand=True,
+                ),
+                packages_to_mark,
+            )
 
         if pacman_packages_to_install:
             pacman_packages_to_install.sort()
