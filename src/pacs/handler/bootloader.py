@@ -47,7 +47,7 @@ def parse_grub_file(path: Path) -> list:
 
 def validate_resolution(value: str) -> bool:
     MODE_PATTERN = re.compile(r"^(auto|\d+x\d+(x\d+)?)$")
-    if not value:
+    if not isinstance(value, str) or not value:
         return False
 
     # split by , or ;
@@ -108,9 +108,19 @@ def validate_grub_config(grub_config: dict, vm: ValidationManager):
                 value in ["menu", "countdown", "hidden"],
                 f'{key} has an invalid value: "{value}".\nValid value is "menu", "countdown" or "hidden".',
             )
-        elif key == "‘GRUB_GFXMODE’":
+        elif key == "GRUB_GFXMODE":
+            # The value may be quoted in the grub file, e.g. GRUB_GFXMODE="1920x1080"
+            modes = value
+            if (
+                isinstance(modes, str)
+                and len(modes) >= 2
+                and modes[0] == modes[-1]
+                and modes[0] in ("'", '"')
+            ):
+                modes = modes[1:-1]
+
             vm.validate(
-                validate_resolution(value),
+                validate_resolution(modes),
                 f'{key} has an invalid value: "{value}".\nValid value is "auto", "widthxheight", or "widthxheightxdepth".',
             )
         elif key == "GRUB_THEME":
