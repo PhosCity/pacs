@@ -126,7 +126,7 @@ def list_packages(mode: PackageType):
     elif mode == PackageType.REMOTE:
         cmd = ["pacman", "-Slq"]
     elif mode == PackageType.AUR:
-        cmd = ["pacman", "-Qm"]
+        cmd = ["pacman", "-Qem"]
     elif mode == PackageType.ALL_INSTALLED:
         cmd = ["pacman", "-Q"]
 
