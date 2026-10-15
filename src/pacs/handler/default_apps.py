@@ -13,7 +13,6 @@ mimetype_map = {
     "text_editor": [
         "text/plain",  # .txt
         "text/markdown",  # .md
-        "text/html",  # .html
         "text/css",  # .css
         "text/csv",  # .csv
         "application/json",  # .json
@@ -65,6 +64,14 @@ def find_desktop_file(name: str) -> bool:
     return False
 
 
+def write_mimeapps(path: Path, content: str) -> None:
+    """
+    Write mimeapps.list, creating the config directory if it does not exist yet.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+
+
 def handle_default_apps(
     associations: dict, vm: ValidationManager, tm: TaskManager
 ) -> None:
@@ -86,7 +93,9 @@ def handle_default_apps(
 
         section = sections[section_name]
 
-        for key, value in sorted(data.items()):
+        for key, value in sorted(
+            data.items(), key=lambda item: (item[0] not in mimetype_map, item[0])
+        ):
             vm.validate(
                 find_desktop_file(value),
                 f"The desktop file for {value} does not exist.",
@@ -118,8 +127,11 @@ def handle_default_apps(
             lines.append(f"{mime}={val}")
         lines.append("")
 
-    current_mimeapps = output_path.read_text()
+    # The file does not exist yet on a fresh system
+    current_mimeapps = (
+        output_path.read_text(encoding="utf-8") if output_path.exists() else ""
+    )
     new_mimeapps = "\n".join(lines)
 
     if new_mimeapps.strip() != current_mimeapps.strip():
-        tm.add_task(output_path.write_text, "Recreate mime types", new_mimeapps)
+        tm.add_task(write_mimeapps, "Recreate mime types", output_path, new_mimeapps)
