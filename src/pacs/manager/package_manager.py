@@ -199,8 +199,13 @@ class PackageManager:
             run_command(["sudo", "pacman", "-Syu"], capture_output=False)
 
     def _clean_command(self):
-        run_command(["paccache", "-rk1"], capture_output=False)
-        run_command(["paccache", "-ruk0"], capture_output=False)
+        # -rk1: keep only the latest version of each installed package
+        # -ruk0: remove all cached versions of packages that are uninstalled
+        for flags in ("-rk1", "-ruk0"):
+            success, _ = run_command(["sudo", "paccache", flags], capture_output=False)
+            self.vm.validate(
+                success, f"Failed to clean the pacman cache (paccache {flags})."
+            )
 
         _, result = run_command(["pacman", "-Qtdq"])
 
